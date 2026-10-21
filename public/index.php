@@ -172,6 +172,17 @@ body{min-height:100dvh}
 #view-more .two-col{margin-bottom:12px}
 @media(max-width:850px){.loadout-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.app-views{height:calc(100vh - 150px);min-height:620px}}
 @media(max-width:600px){.topbar{flex-wrap:wrap}.top-actions{gap:5px}.language-picker select{max-width:120px}.app-nav button{font-size:8px;padding:10px 3px}.app-views{height:calc(100vh - 165px);min-height:650px}.mission-line{grid-template-columns:24px minmax(0,1fr) auto 12px;gap:6px;padding:10px 7px}.mission-line-progress{display:none}.mission-line-title{font-size:11px}.loadout-controls,.intel-grid{grid-template-columns:1fr}.detail-objective{align-items:flex-start;flex-direction:column}.detail-objective span{text-align:left}}
+
+.loadout-result-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.loadout-badge{font-size:10px;letter-spacing:.1em;border:1px solid var(--line);border-radius:999px;padding:4px 8px;color:var(--acid)}
+.stratagem-recommendations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.stratagem-recommendation{display:flex;align-items:center;gap:10px;min-height:52px;padding:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:12px}
+.stratagem-symbol{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:7px;background:#29321e;color:var(--acid);font-size:18px}
+.armor-tip{margin:12px 0;padding:12px;border-left:3px solid var(--gold);background:#211e14;border-radius:0 8px 8px 0}
+.armor-tip strong{font-size:10px;letter-spacing:.12em;color:var(--gold)}
+.armor-tip p{margin:6px 0 0;color:var(--text);font-size:12px;line-height:1.55}
+.feed-item p strong{font-weight:800}.feed-item p em{font-style:italic}.feed-item p a{color:var(--acid);text-decoration:underline}
+@media(max-width:600px){.stratagem-recommendations{grid-template-columns:1fr}}
 </style>
 </head>
 <body><div class="shell">
@@ -222,6 +233,22 @@ body{min-height:100dvh}
   let gcLanguage='en';
   function cleanText(v){return String(v??'').replace(/<\s*\/?\s*[a-z][^>]*>/gi,' ').replace(/\s+/g,' ').trim();}
   const esc = v => cleanText(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function richTextHtml(value){
+    let text=String(value??'');
+    text=text.replace(/&(?:#x([0-9a-f]+)|#([0-9]+)|amp|lt|gt|quot|apos);/gi,(m,h,d)=>{if(h)return String.fromCodePoint(parseInt(h,16));if(d)return String.fromCodePoint(parseInt(d,10));return ({'&amp;':'&','&lt;':'<','&gt;':'>','&quot;':'"','&apos;':"'"}[m.toLowerCase()]||m);});
+    text=text.replace(/<\s*\/?\s*i\s*=\s*\d+\s*>/gi,' ');
+    const escaped=text.replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+    return escaped
+      .replace(/\[b\]([\s\S]*?)\[\/b\]/gi,'<strong>$1</strong>')
+      .replace(/\[i\]([\s\S]*?)\[\/i\]/gi,'<em>$1</em>')
+      .replace(/\[u\]([\s\S]*?)\[\/u\]/gi,'<u>$1</u>')
+      .replace(/\[s\]([\s\S]*?)\[\/s\]/gi,'<s>$1</s>')
+      .replace(/\[url=(https?:\/\/[^\]]+)\]([\s\S]*?)\[\/url\]/gi,'<a href=\"$1\" target=\"_blank\" rel=\"noopener noreferrer\">$2</a>')
+      .replace(/\[url\](https?:\/\/[^\[]+)\[\/url\]/gi,'<a href=\"$1\" target=\"_blank\" rel=\"noopener noreferrer\">$1</a>')
+      .replace(/\[\/?(?:color|size|font|list|\*|quote|center|left|right|img)(?:=[^\]]*)?\]/gi,'')
+      .replace(/\r?\n/g,'<br>');
+  }
+  const renderedData={orders:null,dispatches:null,steam:null};
   function setLanguage(lang){
     gcLanguage=i18n[lang]?lang:'en';document.documentElement.lang=gcLanguage;
     document.cookie=`gc_language=${encodeURIComponent(gcLanguage)}; Max-Age=31536000; Path=/; SameSite=Lax`;
@@ -232,6 +259,9 @@ body{min-height:100dvh}
     const optKeys={loadoutFaction:{terminids:'terminids',automatons:'automatons',illuminate:'illuminate'},loadoutRole:{balanced:'balanced',antiarmor:'antiarmor',crowd:'crowd',support:'support',stealth:'stealth'},loadoutMission:{eradicate:'eradicate',defense:'defense',objectives:'objectives',recon:'recon',extermination:'extermination',escort:'escort',blitz:'blitz'},loadoutDifficulty:{low:'lowDifficulty',mid:'midDifficulty',high:'highDifficulty'}};
     Object.entries(optKeys).forEach(([id,map])=>{const el=document.getElementById(id);if(el)Array.from(el.options).forEach(o=>{if(map[o.value]&&i18n[gcLanguage][map[o.value]])o.textContent=i18n[gcLanguage][map[o.value]];});});
     renderLoadoutSuggestion();
+    if(renderedData.orders) renderOrders(renderedData.orders);
+    if(renderedData.dispatches) renderDispatches(renderedData.dispatches);
+    if(renderedData.steam) renderSteam(renderedData.steam);
   }
   document.getElementById('languageSelect')?.addEventListener('change',e=>setLanguage(e.target.value));
   function renderLoadoutSuggestion(){
@@ -249,7 +279,14 @@ body{min-height:100dvh}
     const desc=gcLanguage==='es'?'Prioriza esta configuración como punto de partida; adapta las herramientas a los objetivos y la composición del escuadrón.':x[1];
     const kit=gcLanguage==='es'?x[2].replaceAll('Supply pack','mochila de suministros').replaceAll('Eagle airstrike','ataque aéreo Eagle').replaceAll('Orbital precision strike','ataque orbital de precisión').replaceAll('Gatling sentry','centinela Gatling'):x[2];
     const box=document.getElementById('loadoutResult');if(!box)return;
-    box.innerHTML=`<strong>${esc(faction)} // ${esc(title)}</strong><p><b>${esc(t.missionType)}:</b> ${esc(missionNames[m]||m)}. ${esc(missionAdvice[m]||'')}</p><p>${esc(desc+extra)}</p><p><b>${esc(t.recommendation)}</b> ${esc(kit)}</p><p style="opacity:.75">${esc(t.disclaimer)}</p>`;
+    const armorTips={
+      terminids: r==='stealth'?'Scout armor for mobility and avoiding patrols.':(r==='antiarmor'?'Engineering Kit or Fortified armor for safer heavy-weapon handling.':'Med-Kit or Engineering Kit armor for sustained swarm control.'),
+      automatons: r==='stealth'?'Scout armor for repositioning and avoiding detection.':(r==='antiarmor'?'Fortified armor for explosive resistance while engaging heavy units.':'Fortified armor for explosive resistance; use cover and keep distance.'),
+      illuminate: r==='stealth'?'Scout armor for mobility and controlled engagements.':'Med-Kit or Engineering Kit armor for survivability and utility.'
+    };
+    const stratagemNames=kit.split(' · ').filter(Boolean);
+    const stratagemCards=stratagemNames.map((name,i)=>`<div class="stratagem-recommendation"><span class="stratagem-symbol" aria-hidden="true">${['✦','⬡','◎','◈'][i%4]}</span><span>${esc(name)}</span></div>`).join('');
+    box.innerHTML=`<div class="loadout-result-heading"><strong>${esc(faction)} // ${esc(title)}</strong><span class="loadout-badge">${esc(d.toUpperCase())}</span></div><p><b>${esc(t.missionType)}:</b> ${esc(missionNames[m]||m)}. ${esc(missionAdvice[m]||'')}</p><p>${esc(desc+extra)}</p><div class="stratagem-recommendations">${stratagemCards}</div><div class="armor-tip"><strong>ARMOR TIP</strong><p>${esc(armorTips[f]||armorTips.terminids)}</p></div><p style="opacity:.75">${esc(t.disclaimer)}</p>`;
   }
   ['loadoutFaction','loadoutMission','loadoutRole','loadoutDifficulty'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLoadoutSuggestion));
   const storedLang=(()=>{try{return localStorage.getItem('gc_language')}catch(e){return null}})();
@@ -311,12 +348,23 @@ body{min-height:100dvh}
 
   async function get(path) { const r = await fetch(endpoint(path), {headers:{'Accept':'application/json'}, cache:'no-store'}); const j = await r.json(); if (!r.ok || j?.ok === false) throw new Error(j?.error?.message || `HTTP ${r.status}`); return {data:unbox(j),meta:j?.meta||{}}; }
   function first(o, keys, fallback=null) { for (const k of keys) if (o && o[k] !== undefined && o[k] !== null) return o[k]; return fallback; }
-  function arr(v) { if (Array.isArray(v)) return v; if (v && typeof v === 'object') { for (const k of ['items','results','data','planets','campaigns','assignments','dispatches','news']) if (Array.isArray(v[k])) return v[k]; } return []; }
+  function arr(v) {
+    if (Array.isArray(v)) return v;
+    if (v && typeof v === 'object') {
+      for (const k of ['items','results','data','planets','campaigns','assignments','dispatches','news','orders','majorOrders','activeAssignments']) {
+        if (Array.isArray(v[k])) return v[k];
+        if (v[k] && typeof v[k]==='object') { const nested=arr(v[k]); if(nested.length)return nested; }
+      }
+      if (['title','name','briefing','description','message','tasks','objectives','missions','progress','expiresAt','expiration'].some(k=>k in v)) return [v];
+    }
+    return [];
+  }
   function nameOf(v) { if (typeof v === 'string') return v; if (v && typeof v === 'object') return first(v,['name','title','value','faction'], 'Unknown'); return v == null ? 'Unknown' : String(v); }
   function dateText(v) { if (!v) return ''; const n = typeof v === 'number' ? (v < 1e12 ? v*1000 : v) : Date.parse(v); if (!Number.isFinite(n)) return String(v); return new Date(n).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
   function getStats(w) { return first(w,['statistics','stats','galaxyStats'],{}) || {}; }
   function setText(id,v) { const el=$(id); if(el) el.textContent = v == null || v === '' ? '—' : cleanText(v); }
   function renderOrders(data) {
+    renderedData.orders=data;
     const items=arr(data).filter(v=>v&&typeof v==='object');
     const primary=items[0]||null;
     const title=primary?first(primary,['title','name'],'Major Order'):'No active Supreme Order';
@@ -350,11 +398,12 @@ body{min-height:100dvh}
     const box=$('orderDetailsContent');if(!box)return;
     if(!order){box.innerHTML=`<div class="empty">${esc(i18n[gcLanguage].orderDetailsEmpty)}</div>`;return;}
     const title=cleanText(first(order,['title','name'],'Major Order'));
-    const desc=cleanText(first(order,['briefing','description','message'],'No further description supplied.'));
+    const desc=String(first(order,['briefing','description','message','briefingText','summary','text'],'No further description supplied.'));
+
     const status=cleanText(first(order,['progressText','status'],'ACTIVE'));
-    const expiry=first(order,['expiration','expiresAt','expiry'],null);
-    const taskSource=first(order,['tasks','objectives','missions'],[]);
-    const tasks=Array.isArray(taskSource)?taskSource.filter(x=>x&&typeof x==='object'):[];
+    const expiry=first(order,['expiration','expiresAt','expiry','deadline','endTime','endsAt'],null);
+    const taskSource=first(order,['tasks','objectives','missions','progresses','targets','subObjectives'],[]);
+    const tasks=Array.isArray(taskSource)?taskSource.filter(x=>x&&typeof x==='object'):((taskSource&&typeof taskSource==='object')?Object.values(taskSource).filter(x=>x&&typeof x==='object'):[]);
     const mission=selectedMission||order;
     const missionTitle=cleanText(first(mission,['description','title','name','objective','task'],''));
     const progress=first(mission,['progress','progressPercent','completion'],null);
@@ -366,10 +415,10 @@ body{min-height:100dvh}
     else if(typeof progress==='string')progressText=cleanText(progress);
     const t=i18n[gcLanguage];
     const detailRows=tasks.length?tasks.map((m,i)=>`<div class="detail-objective"><strong>${esc(t.objective)} ${i+1}: ${esc(first(m,['description','title','name','objective','task','type'],'Mission '+(i+1)))}</strong><span>${esc(first(m,['progressText','progress','status'],'—'))}</span></div>`).join(''):`<div class="empty">${esc(t.noMissionData)}</div>`;
-    box.innerHTML=`<div class="order-detail-heading"><h4>${esc(title)}</h4><span class="tag hot">${esc(status.toUpperCase())}</span></div><p>${esc(desc)}</p><div class="detail-metrics"><div><small>${esc(t.progress)}</small><strong>${esc(progressText)}</strong></div><div><small>${esc(t.deadline)}</small><strong>${esc(expiry?dateText(expiry):'—')}</strong></div></div>${(missionTitle&&selectedMission)?`<div class="selected-mission"><small>${esc(t.mission)} ${index+1}</small><strong>${esc(missionTitle)}</strong></div>`:''}<h4 class="detail-section-title">${esc(t.objective)}s</h4><div class="detail-objectives">${detailRows}</div>`;
+    box.innerHTML=`<div class="order-detail-heading"><h4>${esc(title)}</h4><span class="tag hot">${esc(status.toUpperCase())}</span></div><p>${richTextHtml(desc)}</p><div class="detail-metrics"><div><small>${esc(t.progress)}</small><strong>${esc(progressText)}</strong></div><div><small>${esc(t.deadline)}</small><strong>${esc(expiry?dateText(expiry):'—')}</strong></div></div>${(missionTitle&&selectedMission)?`<div class="selected-mission"><small>${esc(t.mission)} ${index+1}</small><strong>${esc(missionTitle)}</strong></div>`:''}<h4 class="detail-section-title">${esc(t.objective)}s</h4><div class="detail-objectives">${detailRows}</div>`;
   }
-  function renderDispatches(data) { const items=arr(data); const preview=$('incomingDispatchText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','message','content'],'New dispatch')); $('dispatches').innerHTML=items.length?items.slice().sort((a,b)=>Number(first(b,['published','publishedAt','id'],0))-Number(first(a,['published','publishedAt','id'],0))).slice(0,5).map(d=>`<article class="feed-item"><div class="meta">DISPATCH ${esc(first(d,['id','Id'],'—'))} ${first(d,['published','Published'])?' · '+esc(dateText(first(d,['published','Published']))):''}</div><h4>${esc(first(d,['title'],'Galactic dispatch'))}</h4><p>${esc(first(d,['message','Message','content'],'No message text available.'))}</p></article>`).join(''):'<div class="empty">No dispatches synchronized yet.</div>'; }
-  function renderSteam(data) { const items=arr(data); const preview=$('incomingNewsText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','name','content'],'Official update')); $('steamNews').innerHTML=items.length?items.slice(0,5).map(n=>{const title=first(n,['title'],'Official update');const url=first(n,['url','link']);return `<article class="feed-item"><div class="meta">${esc(first(n,['author'],'HELLDIVERS 2'))}${first(n,['publishedAt','published'])?' · '+esc(dateText(first(n,['publishedAt','published']))):''}</div><h4>${url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>`:esc(title)}</h4><p>${esc(String(first(n,['content','description','summary'],'')).replace(/<[^>]*>/g,' ').slice(0,240))}</p></article>`;}).join(''):'<div class="empty">No official news synchronized yet.</div>'; }
+  function renderDispatches(data) { renderedData.dispatches=data; const items=arr(data); const preview=$('incomingDispatchText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','message','content'],'New dispatch')); $('dispatches').innerHTML=items.length?items.slice().sort((a,b)=>Number(first(b,['published','publishedAt','id'],0))-Number(first(a,['published','publishedAt','id'],0))).slice(0,5).map(d=>`<article class="feed-item"><div class="meta">DISPATCH ${esc(first(d,['id','Id'],'—'))} ${first(d,['published','Published'])?' · '+esc(dateText(first(d,['published','Published']))):''}</div><h4>${esc(first(d,['title'],'Galactic dispatch'))}</h4><p>${richTextHtml(first(d,['message','Message','content'],'No message text available.'))}</p></article>`).join(''):'<div class="empty">No dispatches synchronized yet.</div>'; }
+  function renderSteam(data) { renderedData.steam=data; const items=arr(data); const preview=$('incomingNewsText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','name','content'],'Official update')); $('steamNews').innerHTML=items.length?items.slice(0,5).map(n=>{const title=first(n,['title'],'Official update');const url=first(n,['url','link']);return `<article class="feed-item"><div class="meta">${esc(first(n,['author'],'HELLDIVERS 2'))}${first(n,['publishedAt','published'])?' · '+esc(dateText(first(n,['publishedAt','published']))):''}</div><h4>${url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>`:esc(title)}</h4><p>${richTextHtml(String(first(n,['content','description','summary'],'')).replace(/<[^>]*>/g,' ').slice(0,240))}</p></article>`;}).join(''):'<div class="empty">No official news synchronized yet.</div>'; }
   function renderStations(data) { const items=arr(data); const s=items[0]||data; if(!s||typeof s!=='object'||!Object.keys(s).length){$('station').innerHTML='<div class="empty">No station data available.</div>';return;} const p=s.planet||{};const actions=Array.isArray(s.tacticalActions)?s.tacticalActions:[];$('station').innerHTML=`<div class="order"><h4>${esc(nameOf(p.name?p:first(s,['name'],'Mobile Space Station')))}</h4><p>Station ID32: ${esc(first(s,['id32'],'—'))}</p><div class="order-bottom"><span>${actions.length} tactical actions</span><span>${s.electionEnd?'Election ends '+esc(dateText(s.electionEnd)):'Strategic asset'}</span></div>${actions.length?`<div style="margin-top:10px">${actions.slice(0,4).map(a=>`<span class="tag" style="margin:0 5px 5px 0">${esc(nameOf(first(a,['name','title','id'],a)))}</span>`).join('')}</div>`:''}</div>`; }
   async function loadOne(path, success, fail) { try {const result=await get(path);success(result.data,result.meta);return result;}catch(err){if(fail)fail(err);return null;} }
   async function loadAll() {

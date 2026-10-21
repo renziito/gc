@@ -67,3 +67,9 @@ Do not expose CLI scripts such as `bin/sync.php` as web endpoints.
 
 - Git metadata, GitHub workflows, generated error logs and cron logs are excluded from the deployment ZIP.
 - The ZIP preserves the existing application files and configuration as supplied in the current project archive. Treat `config/config.php` as sensitive because it contains server-specific credentials and keys.
+
+## Latest patch notes
+
+This package preserves the supplied visual design. Dispatch/news text now renders common BBCode formatting (`[b]`, `[i]`, `[u]`, `[s]`, and URL tags) safely. Order parsing accepts common nested response shapes and additional deadline/objective field aliases. Changing the language re-renders currently cached feeds. Loadout recommendations have more structured cards and armor tips.
+
+Official individual stratagem images were not present in the supplied archive, so this patch does not claim to include them.

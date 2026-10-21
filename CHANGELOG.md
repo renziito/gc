@@ -14,3 +14,13 @@
 - Added `push_subscriptions` and `notification_state` tables to the schema.
 - Removed malformed HTML-like tags from upstream text before displaying it.
 - Updated deployment and smoke-test documentation.
+
+## UI and content fixes
+
+- Preserved the supplied DiverSignal visual design and existing PHP SPA structure.
+- Added safe rendering for common upstream BBCode tags in dispatch/news descriptions.
+- Expanded order payload normalization to accept nested list wrappers and object-shaped order responses.
+- Expanded order detail field aliases for deadlines and objectives.
+- Re-rendered cached dynamic feeds after changing locale.
+- Improved loadout recommendation cards and added faction/playstyle-based armor guidance.
+- Kept stratagem names as text because the supplied ZIP contains no official stratagem image assets; no fake official images were substituted.
