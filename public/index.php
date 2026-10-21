@@ -77,6 +77,36 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opa
 @media(max-width:900px){.incoming-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.galaxy-map svg{height:250px}}
 @media(max-width:600px){.shell{padding:0 10px 24px}.topbar{margin:0 -10px;padding:9px 10px}.brandname{font-size:11px}.logo{width:38px;height:34px}.status{display:none}.top-actions .btn{padding:7px;font-size:9px}.top-actions .btn.primary{display:none}.incoming-strip{margin:0 -10px;padding:6px 10px;grid-template-columns:1fr 1fr;gap:5px}.incoming-card{min-height:42px;padding:6px}.incoming-copy span{font-size:10px}.incoming-icon{font-size:14px}.language-switch{margin-left:0}.hero{padding:15px 0 12px}.hero h1{font-size:30px}.stats{gap:6px}.stat{padding:9px}.stat .label{font-size:9px}.pillars{grid-template-columns:1fr}.panel{padding:11px}.two-col{grid-template-columns:1fr}.galaxy-map svg{height:220px}.major-order-banner{grid-template-columns:1fr}.major-order-banner .order-state{text-align:left}}
 
+
+/* App-like single-page navigation: views swap in place, no long document scroll */
+html,body{height:100%;overflow:hidden}
+body{min-height:100dvh}
+.shell{height:100dvh;max-width:none;display:flex;flex-direction:column;overflow:hidden;padding-bottom:0}
+.topbar{flex:none}
+.incoming-strip{flex:none}
+.app-nav{display:flex;flex:none;align-items:stretch;gap:5px;padding:7px 0;border-bottom:1px solid #454b4e;background:#0b0d0e}
+.app-nav button{flex:1;min-width:0;padding:11px 12px;border:1px solid #3b4144;background:#171a1c;color:#aeb4b7;text-align:left;font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;position:relative}
+.app-nav button:before{content:attr(data-number);display:inline-block;margin-right:9px;color:#7b8589}
+.app-nav button.active{background:linear-gradient(180deg,#262a2c,#151819);border-color:var(--acid);color:var(--acid)}
+.app-nav button.active:after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:3px;background:var(--acid)}
+.app-views{position:relative;flex:1;min-height:0;overflow:hidden}
+.app-view{display:none;position:absolute;inset:0;overflow:auto;overscroll-behavior:contain;padding:14px 0 20px;scrollbar-color:#4d5559 #101213}
+.app-view.active{display:block;animation:view-enter .16s ease-out}
+@keyframes view-enter{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.app-view .hero{padding-top:4px}
+.app-view .grid-main{margin-top:0}
+.app-view .two-col{margin-top:0}
+.app-view .section-head{margin-top:10px}
+.app-view .panel{margin-bottom:12px}
+.app-view .footer{display:none}
+.app-view .major-order-banner{margin-top:0}
+.app-view .galaxy-map svg{height:clamp(260px,40vh,430px)}
+.app-view .grid-main{grid-template-columns:minmax(0,1.5fr) minmax(290px,.8fr)}
+.app-view .two-col{grid-template-columns:repeat(2,minmax(0,1fr))}
+.app-view .pillars{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:850px){.app-view .grid-main{grid-template-columns:1fr}.app-view .galaxy-map svg{height:260px}.app-view .pillars{grid-template-columns:1fr}.app-view .two-col{grid-template-columns:1fr}}
+@media(max-width:600px){.app-nav{gap:3px;padding:5px 0}.app-nav button{padding:9px 5px;text-align:center;font-size:9px;letter-spacing:0}.app-nav button:before{display:block;margin:0 0 3px;font-size:9px}.app-view{padding-top:10px}.incoming-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.top-actions .language-switch{display:flex}}
+
 </style>
 </head>
 <body><div class="shell">
@@ -101,7 +131,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opa
 <div class="loadout-result" id="loadoutResult" aria-live="polite"><strong>Balanced deployment</strong><p>Choose a faction, role and difficulty for a tactical starting point. Verify current balance and unlocks in-game.</p></div></section>
 <div class="two-col"><section class="panel"><div class="panel-title"><h3>Galactic dispatches</h3><span class="tag">FIELD REPORTS</span></div><div class="feed-list" id="dispatches"><div class="loading">Loading dispatches…</div></div></section><section class="panel"><div class="panel-title"><h3>Official updates</h3><span class="tag">STEAM NEWS</span></div><div class="feed-list" id="steamNews"><div class="loading">Loading official news…</div></div></section></div>
 <div class="two-col"><section class="panel"><div class="panel-title"><h3>Space station</h3><span class="tag good">STRATEGIC ASSETS</span></div><div id="station"><div class="loading">Scanning strategic assets…</div></div></section><section class="panel"><div class="panel-title"><h3>Community intel</h3><span class="tag">WAR ROOM</span></div><p style="font-size:13px;color:var(--muted);margin:0 0 12px">A shared operational view of the galactic war. Community trends, detailed loadout recommendations and historical analytics will expand as those datasets become available through the companion API.</p><div class="campaign-list"><div class="campaign"><strong>War intelligence</strong><span id="warIntelState">Connecting…</span></div><div class="campaign"><strong>Combat recommendations</strong><span>Data module planned</span></div><div class="campaign"><strong>Galactic archives</strong><span id="archiveState">Connecting…</span></div></div></section></div>
-<nav class="mobile-nav" aria-label="Quick navigation"><a href="#planets"><span>◎</span>War map</a><a href="#orders"><span>⌁</span>Orders</a><a href="#dispatches"><span>▤</span>Dispatches</a><a href="#steamNews"><span>◈</span>News</a></nav>
+
 <footer class="footer"><span>GALACTIC COMMAND // FOR THE GLORY OF SUPER EARTH</span><span>Data provided by configured upstream feeds · <span id="footerUpdated">Waiting for sync</span></span></footer>
 </div>
 <script>
@@ -154,11 +184,57 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opa
     document.getElementById('loadoutResult').innerHTML=`<strong>${esc(factions[f])} // ${esc(title)}</strong><p>${esc(desc+extra)}</p><p><b>${es?'Equipo orientativo:':'Suggested kit:'}</b> ${esc(kit)}</p><p style="opacity:.75">${esc(es?'Guía heurística, no estadísticas de victorias en tiempo real. Verifica disponibilidad y balance actual en el juego.':'Heuristic field guide, not live win-rate statistics. Verify current balance and unlocks in-game.')}</p>`;
   }
   ['loadoutFaction','loadoutRole','loadoutDifficulty'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLoadoutSuggestion));
-  setLanguage('en');renderLoadoutSuggestion();
 
   const fmt = n => { const v = Number(n); return Number.isFinite(v) ? new Intl.NumberFormat('en-US',{notation:v>=1e6?'compact':'standard',maximumFractionDigits:1}).format(v) : '—'; };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const unbox = x => x && typeof x === 'object' && Object.prototype.hasOwnProperty.call(x,'data') ? x.data : x;
+  setLanguage('en');renderLoadoutSuggestion();
+  function initAppViews(){
+    const shell=document.querySelector('.shell');
+    const nav=document.createElement('nav');nav.className='app-nav';nav.setAttribute('aria-label','Main navigation');
+    const viewHost=document.createElement('div');viewHost.className='app-views';viewHost.id='appViews';
+    const definitions=[
+      {id:'command',number:'01',en:'COMMAND',es:'MANDO',selectors:['.hero','#majorOrderBanner','.stats','.pillars']},
+      {id:'galaxy',number:'02',en:'GALACTIC THEATRE',es:'TEATRO GALÁCTICO',selectors:['.grid-main']},
+      {id:'combat',number:'03',en:'COMBAT INTEL',es:'INTELIGENCIA DE COMBATE',selectors:['#loadoutSuggestion']},
+      {id:'archives',number:'04',en:'DISPATCHES & ARCHIVES',es:'COMUNICADOS Y ARCHIVO',selectors:[]}
+    ];
+    const views={};
+    definitions.forEach(d=>{
+      const b=document.createElement('button');b.type='button';b.dataset.view=d.id;b.dataset.number=d.number;b.textContent=gcLanguage==='es'?d.es:d.en;
+      b.addEventListener('click',()=>activateAppView(d.id));nav.appendChild(b);
+      const v=document.createElement('section');v.className='app-view';v.id='view-'+d.id;v.dataset.view=d.id;viewHost.appendChild(v);views[d.id]=v;
+    });
+    const header=document.querySelector('.topbar');
+    const strip=document.getElementById('incomingStrip');
+    header.after(strip,nav,viewHost);
+    definitions.forEach(d=>d.selectors.forEach(sel=>{const el=document.querySelector(sel);if(el)views[d.id].appendChild(el);}));
+    const twoCols=[...document.querySelectorAll('.shell > .two-col')];
+    if(twoCols[0])views.archives.appendChild(twoCols[0]);
+    if(twoCols[1])views.archives.appendChild(twoCols[1]);
+    const footer=document.querySelector('.shell > .footer');if(footer)views.command.appendChild(footer);
+    const quickNav=document.querySelector('.shell > .mobile-nav');if(quickNav)quickNav.remove();
+    window.activateAppView=activateAppView;
+    function activateAppView(id){
+      definitions.forEach(d=>{
+        const active=d.id===id;views[d.id].classList.toggle('active',active);
+        const b=nav.querySelector(`[data-view="${d.id}"]`);b.classList.toggle('active',active);b.setAttribute('aria-current',active?'page':'false');
+      });
+      try{history.replaceState(null,'','#'+id);}catch(e){}
+    }
+    document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>{
+      const target=b.dataset.jump;
+      activateAppView(['orders','planets','campaigns'].includes(target)?'galaxy':(['dispatches','steamNews','station'].includes(target)?'archives':'galaxy'));
+      setTimeout(()=>document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'center'}),30);
+    }));
+    const initial=location.hash.replace('#','');
+    activateAppView(definitions.some(d=>d.id===initial)?initial:'command');
+    document.querySelectorAll('[data-lang]').forEach(b=>b.addEventListener('click',()=>{
+      definitions.forEach(d=>{const button=nav.querySelector(`[data-view="${d.id}"]`);button.textContent=gcLanguage==='es'?d.es:d.en;});
+    }));
+  }
+
+  initAppViews();
   async function get(path) { const r = await fetch(endpoint(path), {headers:{'Accept':'application/json'}, cache:'no-store'}); const j = await r.json(); if (!r.ok || j?.ok === false) throw new Error(j?.error?.message || `HTTP ${r.status}`); return {data:unbox(j),meta:j?.meta||{}}; }
   function first(o, keys, fallback=null) { for (const k of keys) if (o && o[k] !== undefined && o[k] !== null) return o[k]; return fallback; }
   function arr(v) { if (Array.isArray(v)) return v; if (v && typeof v === 'object') { for (const k of ['items','results','data','planets','campaigns','assignments','dispatches','news']) if (Array.isArray(v[k])) return v[k]; } return []; }
@@ -193,8 +269,8 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opa
   function renderWar(data, meta) { const w=data&&typeof data==='object'?data:{};const s=getStats(w);const players=first(s,['playerCount','players','activePlayers']);const won=first(s,['missionsWon','missions_won']);const killed=['terminidKills','automatonKills','illuminateKills'].reduce((sum,k)=>sum+(Number(s[k])||0),0);const acc=first(s,['accuracy','missionAccuracy']);setText('players',players===undefined?'—':fmt(players));setText('missionsWon',won===undefined?'—':fmt(won));setText('kills',killed?fmt(killed):'—');setText('accuracy',acc===undefined?'—':`${Number(acc)<=1?Math.round(Number(acc)*100):Math.round(Number(acc))}%`);const now=first(w,['now','time']);const planets=state.planets;const attacks=planets.filter(isAttacked).length;setText('warStatus',planets.length?`${attacks} FRONT${attacks===1?'':'S'} ACTIVE`:'WAR FEED ONLINE');setText('warSub',first(w,['clientVersion'])?`Client version ${w.clientVersion} · Galactic status received`:'Live galactic data received');setText('warMeterLabel',planets.length?`${attacks} planets under attack / ${planets.length} tracked`:'Awaiting planet feed');$('warMeter').style.width=planets.length?`${Math.min(100,attacks/planets.length*100*5)}%`:'0%';setText('warClock',now?dateText(now).toUpperCase():'LIVE FEED');setText('warUpdated',meta?.source_fetched_at?`SYNC ${dateText(meta.source_fetched_at)}`:'SYNCED');setText('warIntelState',planets.length?'Planet data loaded':'Awaiting sync');setText('archiveState','Dispatch feed '+(state.lastUpdate?'loaded':'pending')); }
   async function loadOne(path, success, fail) { try {const result=await get(path);success(result.data,result.meta);return result;}catch(err){if(fail)fail(err);return null;} }
   async function loadAll() { $('connection').textContent='SYNCING GALACTIC NETWORK';$('connection').style.color='';$('refreshBtn').disabled=true; $('refreshBtn').textContent='↻ Syncing'; const results=await Promise.allSettled([
-    loadOne('api/v1/war',(d,m)=>{renderWar(d,m);}),
-    loadOne('api/v1/planets',(d)=>{state.planets=arr(d);renderGalaxyMap();renderPlanets();}),
+    loadOne('api/v1/war',(d,m)=>{renderWar(d,m);},err=>{setText('warStatus','FEED UNAVAILABLE');setText('warSub',`API error: ${err.message}`);setText('warMeterLabel','Check API endpoint and sync status');}),
+    loadOne('api/v1/planets',(d)=>{state.planets=arr(d);renderGalaxyMap();renderPlanets();},err=>{$('planetList').innerHTML=`<div class="error">Planet API unavailable: ${esc(err.message)}</div>`;$('galaxyMap').innerHTML=`<div class="map-empty">Could not retrieve planetary data. Check the API response and sync status.</div>`;}),
     loadOne('api/v1/assignments',renderOrders,()=>loadOne('api/v1/orders',renderOrders,err=>{$('orders').innerHTML=`<div class="error">${esc(err.message)}</div>`;})),
     loadOne('api/v1/campaigns',renderCampaigns,err=>{$('campaigns').innerHTML=`<div class="error">${esc(err.message)}</div>`;}),
     loadOne('api/v1/dispatches',renderDispatches,()=>loadOne('api/v1/news',renderDispatches,err=>{$('dispatches').innerHTML=`<div class="error">${esc(err.message)}</div>`;})),

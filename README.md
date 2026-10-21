@@ -52,3 +52,11 @@ All counts above are from the supplied capture and can change. HTTP 200 confirms
 - Adds EN/ES language toggle for the refreshed interface labels.
 - Adds a heuristic loadout suggestion panel for faction, role, and difficulty. It is a field-guide recommendation, not live win-rate data.
 - Deployment note: preserve the existing server's `config/config.php`; it is intentionally excluded from this ZIP to avoid overwriting server-specific credentials/settings. Operational logs and `.git` metadata are also excluded.
+
+
+## SPA navigation and API loading repair
+- Added four in-place views (Command, Galactic Theatre, Combat Intelligence, Dispatches & Archives). Navigation swaps visible views without full-page reloads or long-page scrolling.
+- Preserved the existing galaxy map and its data renderers, orders/campaigns, dispatches/news and station panel.
+- Fixed a JavaScript initialization-order bug: the loadout renderer was called before the shared HTML-escaping helper (`esc`) was initialized, which could abort the entire script and leave every panel stuck on Loading.
+- War and planet feed failures now display explicit API error messages instead of remaining indefinitely in a loading state.
+- Keep the server's existing `config/config.php`; it is intentionally not included in this ZIP.
