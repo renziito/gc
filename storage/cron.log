@@ -1,0 +1,239 @@
+[war] Upstream transport failed: Operation timed out after 20001 milliseconds with 0 bytes received
+{
+    "run_id": 74,
+    "source_key": "war",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 357,
+    "url": "https://api.helldivers2.dev/api/v1/war"
+}
+{
+    "run_id": 75,
+    "source_key": "planets",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 412,
+    "url": "https://api.helldivers2.dev/api/v1/planets"
+}
+{
+    "run_id": 76,
+    "source_key": "planet_events",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 246,
+    "url": "https://api.helldivers2.dev/api/v1/planet-events"
+}
+{
+    "run_id": 77,
+    "source_key": "assignments",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 252,
+    "url": "https://api.helldivers2.dev/api/v1/assignments"
+}
+{
+    "run_id": 78,
+    "source_key": "campaigns",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 330,
+    "url": "https://api.helldivers2.dev/api/v1/campaigns"
+}
+{
+    "run_id": 79,
+    "source_key": "dispatches",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 424,
+    "url": "https://api.helldivers2.dev/api/v1/dispatches"
+}
+[space_stations] Upstream HTTP 404
+{
+    "run_id": 81,
+    "source_key": "steam_news",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 377,
+    "url": "https://api.helldivers2.dev/api/v1/steam"
+}
+{
+    "run_id": 82,
+    "source_key": "raw_war_id",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 239,
+    "url": "https://api.helldivers2.dev/raw/api/WarSeason/current/WarID"
+}
+{
+    "run_id": 83,
+    "source_key": "raw_war_info",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 359,
+    "url": "https://api.helldivers2.dev/raw/api/WarSeason/801/WarInfo"
+}
+{
+    "run_id": 84,
+    "source_key": "raw_war_status",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 321,
+    "url": "https://api.helldivers2.dev/raw/api/WarSeason/801/Status"
+}
+{
+    "run_id": 85,
+    "source_key": "raw_war_summary",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 336,
+    "url": "https://api.helldivers2.dev/raw/api/Stats/war/801/summary"
+}
+{
+    "run_id": 86,
+    "source_key": "raw_newsfeed",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 441,
+    "url": "https://api.helldivers2.dev/raw/api/NewsFeed/801"
+}
+Sync due completed. Sources attempted: 13
+{
+    "run_id": 87,
+    "source_key": "war",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 364,
+    "url": "https://api.helldivers2.dev/api/v1/war"
+}
+{
+    "run_id": 88,
+    "source_key": "planets",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 420,
+    "url": "https://api.helldivers2.dev/api/v1/planets"
+}
+{
+    "run_id": 89,
+    "source_key": "planet_events",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 252,
+    "url": "https://api.helldivers2.dev/api/v1/planet-events"
+}
+{
+    "run_id": 90,
+    "source_key": "assignments",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 256,
+    "url": "https://api.helldivers2.dev/api/v1/assignments"
+}
+{
+    "run_id": 91,
+    "source_key": "campaigns",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 321,
+    "url": "https://api.helldivers2.dev/api/v1/campaigns"
+}
+{
+    "run_id": 92,
+    "source_key": "dispatches",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 438,
+    "url": "https://api.helldivers2.dev/api/v1/dispatches"
+}
+[space_stations] Upstream HTTP 404
+{
+    "run_id": 94,
+    "source_key": "steam_news",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 368,
+    "url": "https://api.helldivers2.dev/api/v1/steam"
+}
+[raw_war_id] Skipped: interval not elapsed.
+[raw_war_info] Skipped: interval not elapsed.
+{
+    "run_id": 95,
+    "source_key": "raw_war_status",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 333,
+    "url": "https://api.helldivers2.dev/raw/api/WarSeason/801/Status"
+}
+{
+    "run_id": 96,
+    "source_key": "raw_war_summary",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 343,
+    "url": "https://api.helldivers2.dev/raw/api/Stats/war/801/summary"
+}
+{
+    "run_id": 97,
+    "source_key": "raw_newsfeed",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 459,
+    "url": "https://api.helldivers2.dev/raw/api/NewsFeed/801"
+}
+Sync due completed. Sources attempted: 11
+[war] Upstream transport failed: Operation timed out after 20001 milliseconds with 0 bytes received
+[planets] Upstream transport failed: Operation timed out after 20001 milliseconds with 0 bytes received
+[planet_events] Upstream transport failed: Operation timed out after 20001 milliseconds with 0 bytes received
+[assignments] Upstream transport failed: Operation timed out after 20001 milliseconds with 0 bytes received
+[campaigns] Upstream transport failed: Operation timed out after 20001 milliseconds with 0 bytes received
+[dispatches] Upstream transport failed: Operation timed out after 20001 milliseconds with 0 bytes received
+[space_stations] Upstream HTTP 404
+{
+    "run_id": 105,
+    "source_key": "steam_news",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 354,
+    "url": "https://api.helldivers2.dev/api/v1/steam"
+}
+{
+    "run_id": 106,
+    "source_key": "raw_war_id",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 247,
+    "url": "https://api.helldivers2.dev/raw/api/WarSeason/current/WarID"
+}
+{
+    "run_id": 107,
+    "source_key": "raw_war_info",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 334,
+    "url": "https://api.helldivers2.dev/raw/api/WarSeason/801/WarInfo"
+}
+{
+    "run_id": 108,
+    "source_key": "raw_war_status",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 318,
+    "url": "https://api.helldivers2.dev/raw/api/WarSeason/801/Status"
+}
+{
+    "run_id": 109,
+    "source_key": "raw_war_summary",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 335,
+    "url": "https://api.helldivers2.dev/raw/api/Stats/war/801/summary"
+}
+{
+    "run_id": 110,
+    "source_key": "raw_newsfeed",
+    "status": "success",
+    "http_status": 200,
+    "duration_ms": 447,
+    "url": "https://api.helldivers2.dev/raw/api/NewsFeed/801"
+}
+Sync due completed. Sources attempted: 13
