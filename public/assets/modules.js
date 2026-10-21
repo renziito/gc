@@ -59,9 +59,7 @@
     let s=String(value??'').replace(/<\s*br\s*\/?\s*>/gi,'\n').replace(/<\s*\/?\s*[a-z][^>]*>/gi,' ');
     const allowed=[];
     s=s.replace(/\[(\/)?(b|i|u|s|strike)\]/gi,(_,close,tag)=>{const m={b:'strong',i:'em',u:'u',s:'s',strike:'s'};allowed.push((close?'</':'<')+m[tag.toLowerCase()]+'>');return `\u0001${allowed.length-1}\u0002`;});
-    s=s.replace(/\[url=(https?:\/\/[^\]\s]+)\]([\s\S]*?)\[\/url\]/gi,(_,url,label)=>{const safe=safeHref(url);return safe?`<a href="${esc(safe)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`:esc(label);});
     s=s.replace(/\[\/?(?:url|color|size|list)(?:=[^\]]*)?\]/gi,'').replace(/\[\*\]/g,'• ');
-    s=s.replace(/<\s*\/?\s*i\s*=\s*\d+\s*>/gi,'');
     s=s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/\n/g,'<br>');
     return s.replace(/\u0001(\d+)\u0002/g,(_,n)=>allowed[Number(n)]||'');
   };
@@ -252,9 +250,9 @@
   }
   function buildArchives() {
     const f=feeds(), items=[];
-    cleanArr(f.dispatches||f.news).forEach(d=>items.push({type:'dispatch',date:d.published||d.publishedAt||d.id,title:plain(d.title||`Dispatch ${d.id||''}`),text:String(d.message||d.Message||d.content||''),id:d.id}));
-    cleanArr(f.steam_news||f.steam).forEach(n=>items.push({type:'news',date:n.publishedAt||n.published,title:plain(n.title||'Official update'),text:String(n.content||n.description||''),url:safeHref(n.url)}));
-    cleanArr(f.assignments||f.orders).forEach(o=>items.push({type:'order',date:o.expiration||o.expirationAt,title:plain(o.title||o.name||'Major order'),text:String(o.briefing||o.description||''),id:o.id}));
+    cleanArr(f.dispatches||f.news).forEach(d=>items.push({type:'dispatch',date:d.published||d.publishedAt||d.id,title:plain(d.title||`Dispatch ${d.id||''}`),text:plain(d.message||d.Message||d.content||''),id:d.id}));
+    cleanArr(f.steam_news||f.steam).forEach(n=>items.push({type:'news',date:n.publishedAt||n.published,title:plain(n.title||'Official update'),text:plain(n.content||n.description||''),url:safeHref(n.url)}));
+    cleanArr(f.assignments||f.orders).forEach(o=>items.push({type:'order',date:o.expiration||o.expirationAt,title:plain(o.title||o.name||'Major order'),text:plain(o.briefing||o.description||''),id:o.id}));
     planets().filter(eventPlanet).forEach(p=>items.push({type:'event',date:null,title:planetName(p),text:plain(typeof p.event==='object'?JSON.stringify(p.event):p.event),sector:p.sector}));
     (state.history.war_snapshots||[]).forEach(w=>{
       const summary=w.summary&&typeof w.summary==='object'?Object.entries(w.summary).slice(0,8).map(([k,v])=>`${k}: ${typeof v==='object'?JSON.stringify(v):v}`).join(' · '):'';
@@ -272,7 +270,7 @@
     state.archive=buildArchives();
     const q=$('archiveSearch').value.trim().toLowerCase(), type=$('archiveType').value;
     const items=state.archive.filter(x=>(type==='all'||x.type===type)&&[x.title,x.text,x.type,x.sector].join(' ').toLowerCase().includes(q)).slice(0,80);
-    root.innerHTML=items.length?items.map(x=>`<article class="archive-item"><div class="archive-date">${esc(x.type.toUpperCase())}${x.date?' · '+esc(bridge()?.dateText(x.date)||String(x.date)):''}</div><h4>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}</h4><p>${rich(x.text.slice(0,360))}${x.sector?' · '+esc(x.sector):''}</p></article>`).join(''):`<div class="module-empty">${esc(t('noMatches'))}</div>`;
+    root.innerHTML=items.length?items.map(x=>`<article class="archive-item"><div class="archive-date">${esc(x.type.toUpperCase())}${x.date?' · '+esc(bridge()?.dateText(x.date)||String(x.date)):''}</div><h4>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}</h4><p>${esc(x.text.slice(0,360))}${x.sector?' · '+esc(x.sector):''}</p></article>`).join(''):`<div class="module-empty">${esc(t('noMatches'))}</div>`;
   }
   function notificationStatus(text) { $('alertStatus').textContent=text; }
   function notify(title, body, tag) {
@@ -383,7 +381,8 @@
     updatePlanetSelect(); renderLoadout(); renderCommunity(); renderArchives(); checkAlerts();
     loadHistory();
   }
-  $('langToggle').addEventListener('click',()=>{lang=lang==='en'?'es':'en';localStorage.setItem('gc-lang',lang);applyLanguage();});
+  $('langToggle').addEventListener('click',()=>{lang=lang==='en'?'es':'en';try{localStorage.setItem('gc-lang',lang);localStorage.setItem('gc_language',lang);document.cookie='gc_language='+lang+'; Max-Age=31536000; Path=/; SameSite=Lax';}catch(e){}applyLanguage();window.dispatchEvent(new CustomEvent('gc:language-changed',{detail:{lang}}));});
+  window.addEventListener('gc:language-changed',event=>{const next=event.detail?.lang;if(!['en','es'].includes(next)||next===lang)return;lang=next;try{localStorage.setItem('gc-lang',lang);localStorage.setItem('gc_language',lang);}catch(e){}applyLanguage();});
   $('loGenerate').addEventListener('click',renderLoadout);
   ['loFaction','loMission','loStyle','loDifficulty','loSquad','loPlanet'].forEach(id=>$(id).addEventListener('change',renderLoadout));
   $('loCopy').addEventListener('click',copyLoadout);

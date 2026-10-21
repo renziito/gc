@@ -62,9 +62,10 @@ All counts above are from the supplied capture and can change. HTTP 200 confirms
 - Keep the server's existing `config/config.php`; it is intentionally not included in this ZIP.
 
 
-## Corrective patch (2026-10-21)
-- Order cards open an in-app detail dialog; task/progress, deadline and rewards are shown when supplied by the current API payload.
-- Major order briefings, dispatches, Steam news and archive content support safe BBCode bold/italic/underline/strike formatting.
-- Archive formatting no longer strips BBCode to plain text before rendering.
-- Existing design and API integration are preserved. No GitHub deployment workflow is included.
-- Official per-stratagem art was not present in the uploaded source ZIP, so the package does not invent or embed unverified external image URLs.
+## Patch based on the supplied `DiverSignal_UI_Fixes(2).zip`
+- Preserves this archive's existing dark, yellow-accented tactical interface and SPA views; this is not a redesign/revert.
+- Major Order cards are now keyboard-accessible buttons. Selecting one opens an in-place detail dialog with briefing, objectives/progress, rewards, expiry/status and other fields available in the synchronized source payload.
+- Order briefings use the same safe BBCode renderer as dispatches/news, so nested `[b]`, `[i]`, `[u]`, `[s]` formatting renders as emphasis rather than literal tags.
+- The order detail dialog labels and empty-state messages follow the existing English/Spanish UI preference.
+- This patch does not add the four missing languages (Simplified Chinese, Russian, Portuguese and German), and this archive has no official stratagem artwork files. The existing loadout presentation is preserved rather than inserting guessed image URLs.
+- Keep the current server's `config/config.php` and do not overwrite it from this ZIP; it is intentionally omitted from this patch package. The supplied archive contained credentials in that file.
