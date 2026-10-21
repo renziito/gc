@@ -9,6 +9,8 @@ This version uses the real JSON structures captured in `galactic-json.zip`. It i
 - A cron facility
 
 ## Deploy
+
+The distributable source ZIP intentionally omits `config/config.php` because it contains deployment-specific credentials. Copy `config/config.example.php` to `config/config.php` and re-enter your own database settings; do not commit the live config or runtime logs.
 1. Create a dedicated MySQL database and user in cPanel.
 2. Import `database/schema.sql`.
 3. Copy `config/config.example.php` to `config/config.php`; fill credentials and set a random `app_key`.
@@ -42,3 +44,45 @@ All counts above are from the supplied capture and can change. HTTP 200 confirms
 - The DB-backed advisory lock serializes upstream requests from this app.
 - The `--due` scheduler checks each source interval before fetching.
 - Do not expose `bin/sync.php` as a web endpoint. Run it with CLI cron only.
+
+
+## Companion modules included in this package
+
+- **War Room:** live war/planet feed, planetary search and schematic map, active orders, campaigns, dispatches, Steam news, and station summary.
+- **Combat intelligence:** mission-context loadout planner for faction, mission type, playstyle, difficulty, squad size, and optional planet. Recommendations use a transparent tag-based heuristic and are not presented as live win-rate statistics.
+- **Community intel:** operational snapshot derived from synchronized planet/campaign feeds (tracked planets, attacked planets, event planets, reported campaigns).
+- **Galactic Archives:** searchable timeline combining current dispatches, official updates, orders, and active planetary events. `/api/v1/history?limit=30` exposes persisted war and planet snapshots.
+- **Field Manual / Codex:** searchable starter catalog of stratagems, weapons, armor archetypes, and enemies. It is a curated reference, not a live unlock/balance feed.
+- **Localization:** English/Spanish dashboard toggle. Canonical in-game equipment names remain in English where that avoids ambiguous translations.
+- **Alerts:** local browser notifications while the dashboard is open, plus optional Web Push delivery when configured. Local alerts work without VAPID setup.
+
+### Enable Web Push (optional)
+
+1. Run `composer install` in the project root.
+2. Generate a VAPID key pair on the server:
+   ```bash
+   php -r "require 'vendor/autoload.php'; print_r(Minishlink\\WebPush\\VAPID::createVapidKeys());"
+   ```
+3. Copy the generated `publicKey` and `privateKey` into `config/config.php` under `push.public_key` and `push.private_key`. Keep the private key secret. Set `push.subject` to a contact URI such as `mailto:ops@example.com`.
+4. Apply the updated `database/schema.sql` to create the `push_subscriptions` and `notification_state` tables. If `push_subscriptions` already exists from an earlier deployment, also run `ALTER TABLE push_subscriptions ADD COLUMN preferences_json JSON NULL;`.
+5. Open the site over HTTPS and click **Enable alerts**. The browser asks permission, registers `public/sw.js`, and stores its push subscription through `POST /api/v1/push/subscribe`.
+6. Add this CLI job to the existing scheduler, ideally every 2 minutes after `bin/sync.php --due`:
+   ```bash
+   php /path/to/gc/bin/check-alerts.php
+   ```
+   It deduplicates major-order identity changes, new dispatches, and newly attacked planets. Expired push subscriptions are removed when delivery reports them.
+7. Optional manual test:
+   ```bash
+   php /path/to/gc/bin/push.php --title="Galactic Command test" --body="Push delivery is configured."
+   ```
+
+Web Push requires HTTPS (localhost is accepted by browsers for development), a valid VAPID key pair, the Composer dependency, and the new schema tables. Without these steps, the dashboard still supports local browser alerts, but it cannot notify a closed browser.
+
+### New API endpoints
+
+- `GET /api/v1/history?limit=30` — latest stored war and planet snapshots; `limit` is clamped to 1–100.
+- `GET /api/v1/push/public-key` — public VAPID key (503 if push is not configured).
+- `POST /api/v1/push/subscribe` — save a browser push subscription.
+- `DELETE /api/v1/push/subscribe` — remove a subscription by endpoint.
+
+The subscription endpoint only accepts HTTPS push service hosts supported by major browsers and stores each subscriber's order/dispatch/attack preferences. Keep `config/config.php`, private VAPID keys, database credentials, `vendor/`, and operational logs out of public web access.

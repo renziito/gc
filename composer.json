@@ -1,0 +1,12 @@
+{
+  "name": "renziito/galactic-command",
+  "description": "Galactic Command companion backend and Web Push notifications",
+  "type": "project",
+  "require": {
+    "php": ">=8.1",
+    "minishlink/web-push": "^9.0"
+  },
+  "config": {
+    "sort-packages": true
+  }
+}

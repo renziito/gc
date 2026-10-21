@@ -1,0 +1,8 @@
+# Dependencies and runtime-only files
+/vendor/
+/config/config.php
+/public/error_log
+/storage/*.log
+/storage/cache/
+/storage/tmp/
+/.DS_Store

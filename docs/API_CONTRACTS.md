@@ -18,3 +18,11 @@ All endpoints return UTF-8 JSON in an envelope:
 
 ## Initial caveat
 The list endpoints return the latest raw upstream JSON payload inside `data` to make transport and caching work first. Relational tables are also populated for the fields seen in the supplied validator JSON. Before locking Android DTOs, add normalized DTO envelopes and API contract tests. This avoids pretending all upstream semantics have been conclusively documented.
+
+
+## History and Web Push
+- `GET /api/v1/history?limit=30` returns `data.war_snapshots` and `data.planet_snapshots`; limit is clamped to 1–100.
+- `GET /api/v1/push/public-key` returns the configured public VAPID key or `503 push_not_configured`.
+- `POST /api/v1/push/subscribe` accepts `{ "subscription": { "endpoint": "https://...", "keys": { "p256dh": "...", "auth": "..." } }, "preferences": { "orders": true, "dispatches": true, "attacks": true } }`. Preferences are optional and default to enabled.
+- `DELETE /api/v1/push/subscribe` accepts `{ "endpoint": "https://..." }`.
+- Push sending is CLI-only: `bin/check-alerts.php` compares persisted notification state, and `bin/push.php` sends a manual test notification. Both require `composer install` and VAPID configuration.

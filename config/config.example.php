@@ -17,5 +17,12 @@ return [
         'user_agent' => 'GalacticCommand/0.1 (unofficial Helldivers 2 companion)',
     ],
     'cron_token' => 'REPLACE_WITH_A_LONG_RANDOM_TOKEN',
+    // Optional Web Push (VAPID). Leave blank to use local browser alerts only.
+    // Generate a pair with the instructions in README.md; never publish private_key.
+    'push' => [
+        'public_key' => '',
+        'private_key' => '',
+        'subject' => 'mailto:admin@example.com',
+    ],
     'storage_path' => dirname(__DIR__) . '/storage',
 ];
