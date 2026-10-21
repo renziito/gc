@@ -44,9 +44,11 @@ All counts above are from the supplied capture and can change. HTTP 200 confirms
 - Do not expose `bin/sync.php` as a web endpoint. Run it with CLI cron only.
 
 
-## UI refresh (October 2026)
-- Added a tactical, high-contrast Helldivers-inspired visual system with hazard-yellow accents, hard-edged panels, faction colors and a command ticker.
-- Added client-side command navigation for War Room, Combat Intelligence, Archives and Command Overview. It remains a single-page PHP application; navigation switches views without full page reloads.
-- Preserved existing API routes and War Room renderers.
-- The supplied source ZIP did not contain a functional loadout recommender module. The Combat Intelligence view is a styled integration point, not a claim that a recommender engine is active.
-- For deployment, retain your existing `config/config.php` and do not upload credentials to public repositories.
+## Preservation-first UI update
+- Restyles the existing Galactic Command interface with a Helldivers-inspired tactical black/yellow visual system.
+- Keeps the original planetary galaxy map, planet filters, orders, campaigns, dispatches, Steam news, station panel, and existing API/rendering logic in place.
+- Adds compact incoming-message rectangles at the top, populated from current orders, dispatches, and official news.
+- Adds a current Supreme Order banner on the main screen.
+- Adds EN/ES language toggle for the refreshed interface labels.
+- Adds a heuristic loadout suggestion panel for faction, role, and difficulty. It is a field-guide recommendation, not live win-rate data.
+- Deployment note: preserve the existing server's `config/config.php`; it is intentionally excluded from this ZIP to avoid overwriting server-specific credentials/settings. Operational logs and `.git` metadata are also excluded.
