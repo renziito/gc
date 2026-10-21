@@ -60,3 +60,11 @@ All counts above are from the supplied capture and can change. HTTP 200 confirms
 - Fixed a JavaScript initialization-order bug: the loadout renderer was called before the shared HTML-escaping helper (`esc`) was initialized, which could abort the entire script and leave every panel stuck on Loading.
 - War and planet feed failures now display explicit API error messages instead of remaining indefinitely in a loading state.
 - Keep the server's existing `config/config.php`; it is intentionally not included in this ZIP.
+
+
+## Corrective patch (2026-10-21)
+- Order cards open an in-app detail dialog; task/progress, deadline and rewards are shown when supplied by the current API payload.
+- Major order briefings, dispatches, Steam news and archive content support safe BBCode bold/italic/underline/strike formatting.
+- Archive formatting no longer strips BBCode to plain text before rendering.
+- Existing design and API integration are preserved. No GitHub deployment workflow is included.
+- Official per-stratagem art was not present in the uploaded source ZIP, so the package does not invent or embed unverified external image URLs.
