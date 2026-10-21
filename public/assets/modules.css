@@ -43,12 +43,3 @@
 .module-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 @media(max-width:900px){.module-grid{grid-template-columns:1fr}.module-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.module-fields,.module-result{grid-template-columns:1fr}.module-kpi strong{font-size:18px}.module-toolbar .search{min-width:100%}}
-
-/* Tactical loadout refresh */
-.stratagem-card{display:grid;grid-template-columns:92px minmax(0,1fr);gap:14px;align-items:stretch;padding:12px;border:1px solid #41474b;background:linear-gradient(135deg,#1b2022,#111416)}
-.stratagem-art{position:relative;display:flex;align-items:center;justify-content:center;min-height:100px;border:1px solid #69612c;background:repeating-linear-gradient(135deg,#24251c 0 8px,#17191a 8px 16px);color:#f2d400}
-.stratagem-art span{font-size:38px;text-shadow:0 0 16px #f2d40055}
-.stratagem-art small{position:absolute;left:7px;top:6px;font-weight:900;font-size:10px;letter-spacing:.12em}
-.stratagem-info{min-width:0}.stratagem-info h4{margin:5px 0 7px;font-size:16px}.stratagem-info p{margin:0 0 9px;line-height:1.5}
-.armor-tip{border-color:#786e25;background:linear-gradient(110deg,#282619,#151819)}.armor-tip .catalog-icon{font-size:32px;color:#f2d400}
-@media(max-width:480px){.stratagem-card{grid-template-columns:68px minmax(0,1fr);gap:10px;padding:9px}.stratagem-art{min-height:86px}.stratagem-art span{font-size:29px}.stratagem-info h4{font-size:14px}}
