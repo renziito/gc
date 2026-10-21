@@ -1,62 +1,69 @@
-# Galactic Command / DiverSignal — Backend v1
+# DiverSignal — Helldivers 2 companion
 
-This version uses the real JSON structures captured in `galactic-json.zip`. It intentionally stores complete upstream payloads as JSON alongside normalized relational records. This avoids losing source fields while we develop stable app DTOs.
+DiverSignal is a lightweight, single-page companion intended to stay open beside Helldivers 2. It focuses on current Supreme Order missions, loadout suggestions, and general Combat Intel. It deliberately does **not** reproduce the in-game galactic war map.
 
-## Required environment
-- PHP 8.1+ (8.2 preferred), extensions `curl`, `pdo_mysql`, `json`, `mbstring`
-- MySQL 8.0+ or compatible MariaDB with JSON support
-- HTTPS
-- A cron facility
+## Current application sections
 
-## Deploy
-1. Create a dedicated MySQL database and user in cPanel.
-2. Import `database/schema.sql`.
-3. Copy `config/config.example.php` to `config/config.php`; fill credentials and set a random `app_key`.
-4. Keep `app/`, `config/`, `database/`, `bin/`, and `storage/` outside the web document root. Set document root to `public/`. If hosting cannot do that, deny access to those folders explicitly.
-5. Set `GC_CRON_TOKEN` in your environment if possible, or configure the same long random token in `config.php`.
-6. Upload files and test `GET /api/v1/health`.
-7. Test `GET /` for the endpoint directory and `GET /api/v1/health` for health. Supported aliases include `/api/v1/assignments` and `/api/v1/orders`, `/api/v1/dispatches` and `/api/v1/news`, plus `/api/v1/steam` and `/api/v1/steam-news`.
-8. Run a one-time sync manually from CLI: `php /path/to/diversignal/bin/sync.php --source=war`, then `--source=planets`, `--source=planet_events`, `--source=assignments`, `--source=campaigns`, `--source=dispatches`, `--source=space_stations`, `--source=steam_news`.
-9. The individual station endpoint must use `id32`, not the array `index` nor a DB auto-increment id: `php bin/sync.php --source=space_station_by_index --id32=749875195`.
-10. Verify `GET /api/v1/war`, `/api/v1/planets`, `/api/v1/orders`, `/api/v1/news`, `/api/v1/space-stations`.
-11. Only after manual runs are successful, schedule `php bin/sync.php --due` every 2 minutes. The scheduler honors per-source intervals, but upstream rate limits still need monitoring.
+- **Orders:** the current Supreme Order summary and one concise line per mission/objective.
+- **Loadout Advisor:** enemy faction, mission type, combat style, and difficulty filters.
+- **Combat Intel:** general recommendations against Terminids, Automatons, and Illuminate, plus advice by mission type.
+- **Order Details:** full order description, objectives, progress and deadline where the upstream feed provides them.
+- **More:** About DiverSignal, donation placeholder, notification setup, ad placement placeholders, dispatches, official news, station information and community notes.
+- Six interface languages: English, Simplified Chinese, Russian, Spanish, Portuguese, and German. The language preference is stored in a cookie and local storage.
+- Single-page navigation: section changes do not reload the entire page.
+- Text displayed from upstream feeds is normalized to remove HTML-like tags such as malformed `<i=3>` before it is escaped for display.
 
-## Important route facts from captured JSON
-- `war`: `/api/v1/war` -> object containing `started`, `ended`, `now`, `clientVersion`, `factions`, `impactMultiplier`, `statistics`.
-- `planets`: `/api/v1/planets` -> array (273 items in captured sample) with `index`, `name`, `sector`, `biome`, `hazards`, `position`, `maxHealth`, `health`, `currentOwner`, `regenPerSecond`, `event`, `statistics`, `attacking`, `regions`.
-- `planet_events`: `/api/v1/planet-events` -> array of planet records with a non-null `event` in the captured sample.
-- `assignments`: `/api/v1/assignments` -> array containing `id`, `progress`, `title`, `briefing`, `description`, `tasks`, `reward`, `rewards`, `expiration`, `flags`.
-- `campaigns`: `/api/v1/campaigns` -> array of campaign records with `id`, nested `planet`, `type`, `count`, `faction`.
-- `dispatches`: `/api/v1/dispatches` -> array with `id`, `published`, `type`, `message`.
-- `space_stations`: `/api/v1/space-stations` -> array with `id32`, nested `planet`, `electionEnd`, `flags`, `tacticalActions`.
-- `space_station_by_index`: `/api/v2/space-stations/{id32}`. Use the station **id32** (example `749875195`), never its array index or local DB id. The validator capture returned HTTP 200 for that ID.
-- `steam_news`: `/api/v1/steam` -> array with `id`, `title`, `url`, `author`, `content`, `publishedAt`.
+The loadout recommendations are heuristic guidance, not official win-rate statistics. Verify current balance and unlocks in-game.
 
-All counts above are from the supplied capture and can change. HTTP 200 confirms transport success at capture time, not a permanent upstream contract.
+## Hosting requirements
 
-## Sync design
-- Raw response JSON is saved for traceability.
-- Planet, assignment, campaign, dispatch and station tables are normalized conservatively from observed fields.
-- `war` stores a raw snapshot and selected summary values.
-- Source sync failures are logged and never delete last known good payloads.
-- The DB-backed advisory lock serializes upstream requests from this app.
-- The `--due` scheduler checks each source interval before fetching.
-- Do not expose `bin/sync.php` as a web endpoint. Run it with CLI cron only.
+- PHP 8.1+ (PHP 8.2 preferred)
+- PHP extensions: `curl`, `pdo_mysql`, `json`, `mbstring`
+- MySQL 8+ or compatible MariaDB with JSON support
+- HTTPS is required for browser push notifications and service workers
+- Composer dependencies installed from `composer.json`
+- Cron access for data synchronization and order-event notification checks
 
+## Upload to cPanel or a PHP host
 
-## Preservation-first UI update
-- Restyles the existing Galactic Command interface with a Helldivers-inspired tactical black/yellow visual system.
-- Keeps the original planetary galaxy map, planet filters, orders, campaigns, dispatches, Steam news, station panel, and existing API/rendering logic in place.
-- Adds compact incoming-message rectangles at the top, populated from current orders, dispatches, and official news.
-- Adds a current Supreme Order banner on the main screen.
-- Adds EN/ES language toggle for the refreshed interface labels.
-- Adds a heuristic loadout suggestion panel for faction, role, and difficulty. It is a field-guide recommendation, not live win-rate data.
-- Deployment note: preserve the existing server's `config/config.php`; it is intentionally excluded from this ZIP to avoid overwriting server-specific credentials/settings. Operational logs and `.git` metadata are also excluded.
+1. Back up the existing application and database before replacing files.
+2. Upload the project files. Prefer setting the domain/subdomain document root to the `public/` folder. Keep `app/`, `bin/`, `config/`, `database/`, and `storage/` outside the public document root.
+3. Preserve your existing `config/config.php` if it contains your live database credentials, app key, push VAPID keys, or other host-specific values. Use `config/config.example.php` as a reference; do not overwrite a working production config with example placeholders.
+4. Import `database/schema.sql`. It creates the data tables and the `push_subscriptions` and `notification_state` tables used by order notifications. Existing databases can import it again because the tables use `IF NOT EXISTS`.
+5. Install Composer dependencies in the project root: `composer install --no-dev --optimize-autoloader`.
+6. Test `GET /api/v1/health`; it should return JSON with `"status":"up"`.
+7. Run a manual data sync from the command line, for example:
+   - `php bin/sync.php --source=assignments`
+   - `php bin/sync.php --source=dispatches`
+   - `php bin/sync.php --source=steam_news`
+   - `php bin/sync.php --source=space_stations`
+8. After verifying the feeds, schedule `php /absolute/path/to/bin/sync.php --due` every two minutes, adjusting the absolute path for your hosting account.
+9. Schedule `php /absolute/path/to/bin/check-alerts.php` every two minutes. It sends push notifications only for a newly detected Supreme Order or when the current order reaches a recognized terminal state. The initial state is stored without sending a notification.
+10. Enable notifications from **More → Order notifications** on each browser/device. HTTPS and valid VAPID keys are required.
 
+## Push notification behavior
 
-## SPA navigation and API loading repair
-- Added four in-place views (Command, Galactic Theatre, Combat Intelligence, Dispatches & Archives). Navigation swaps visible views without full-page reloads or long-page scrolling.
-- Preserved the existing galaxy map and its data renderers, orders/campaigns, dispatches/news and station panel.
-- Fixed a JavaScript initialization-order bug: the loadout renderer was called before the shared HTML-escaping helper (`esc`) was initialized, which could abort the entire script and leave every panel stuck on Loading.
-- War and planet feed failures now display explicit API error messages instead of remaining indefinitely in a loading state.
-- Keep the server's existing `config/config.php`; it is intentionally not included in this ZIP.
+- Push is restricted to the `orders` topic.
+- The application does not send notifications for dispatches, official news, planet attacks, or ordinary progress polling.
+- Notification links use a relative path (`./#orders` or `./#details`) and the service worker resolves them against its registration scope, so deployments in a subdirectory can open the corresponding SPA view.
+- Native Android/iOS app links still require a separately built mobile app and platform association files. This package contains the web application and web push implementation, not a native Android application.
+
+## Advertising and donations
+
+The banner and optional rewarded-ad spaces are placeholders only. No advertising provider or reward is active. The donation link is intentionally a placeholder until a destination is supplied.
+
+## API routes
+
+The current web API includes `/api/v1/health`, `/api/v1/war`, `/api/v1/planets`, `/api/v1/assignments`, `/api/v1/orders`, `/api/v1/campaigns`, `/api/v1/dispatches`, `/api/v1/news`, `/api/v1/steam`, `/api/v1/steam-news`, `/api/v1/space-stations`, and `/api/v1/planet-events`.
+
+Push routes:
+- `GET /api/v1/push/key`
+- `POST /api/v1/push/subscribe`
+- `POST /api/v1/push/unsubscribe`
+
+Do not expose CLI scripts such as `bin/sync.php` as web endpoints.
+
+## Package notes
+
+- Git metadata, GitHub workflows, generated error logs and cron logs are excluded from the deployment ZIP.
+- The ZIP preserves the existing application files and configuration as supplied in the current project archive. Treat `config/config.php` as sensitive because it contains server-specific credentials and keys.

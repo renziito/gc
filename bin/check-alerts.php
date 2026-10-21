@@ -8,16 +8,13 @@ require $vendor;
 require_once dirname(__DIR__) . '/app/PushNotifier.php';
 
 function getPayload(PDO $pdo, string $key): array {
-    $q = $pdo->prepare('SELECT payload_json FROM source_payloads WHERE source_key=? AND entity_key IS NULL ORDER BY id DESC LIMIT 1');
-    $q->execute([$key]); $v=$q->fetchColumn();
-    if (!is_string($v)) return [];
-    $data=json_decode($v,true);
-    return is_array($data)?$data:[];
+    $q=$pdo->prepare('SELECT payload_json FROM source_payloads WHERE source_key=? AND entity_key IS NULL ORDER BY id DESC LIMIT 1');
+    $q->execute([$key]);$v=$q->fetchColumn();if(!is_string($v))return [];
+    $data=json_decode($v,true);return is_array($data)?$data:[];
 }
 function stateGet(PDO $pdo,string $key): ?array {
     $q=$pdo->prepare('SELECT state_hash,state_json FROM notification_state WHERE state_key=?');$q->execute([$key]);$r=$q->fetch();
-    if(!$r)return null;
-    return ['hash'=>$r['state_hash'],'json'=>json_decode((string)$r['state_json'],true)];
+    if(!$r)return null;return ['hash'=>$r['state_hash'],'json'=>json_decode((string)$r['state_json'],true)];
 }
 function stateSet(PDO $pdo,string $key,array $value): void {
     $json=json_encode($value,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
@@ -25,74 +22,60 @@ function stateSet(PDO $pdo,string $key,array $value): void {
     $q=$pdo->prepare('INSERT INTO notification_state(state_key,state_hash,state_json,updated_at) VALUES(?,?,?,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE state_hash=VALUES(state_hash),state_json=VALUES(state_json),updated_at=UTC_TIMESTAMP()');
     $q->execute([$key,$hash,$json]);
 }
-function pushIfConfigured(PDO $pdo,array $config,string $title,string $body,string $topic): void {
-    if(empty($config['push']['public_key'])||empty($config['push']['private_key'])) return;
-    $count=(int)$pdo->query('SELECT COUNT(*) FROM push_subscriptions')->fetchColumn();
-    if($count<1)return;
-    $r=(new PushNotifier($pdo,$config))->send($title,$body,'/',$topic);
-    echo $title . ': ' . json_encode($r) . PHP_EOL;
+function pushIfConfigured(PDO $pdo,array $config,string $title,string $body,string $topic,string $url='./#details'): void {
+    if(empty($config['push']['public_key'])||empty($config['push']['private_key']))return;
+    if((int)$pdo->query('SELECT COUNT(*) FROM push_subscriptions')->fetchColumn()<1)return;
+    $r=(new PushNotifier($pdo,$config))->send($title,$body,$url,$topic);
+    echo $title.': '.json_encode($r,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE).PHP_EOL;
+}
+function isTerminalOrder(array $o): ?string {
+    $status=strtolower(trim((string)($o['status']??$o['state']??$o['progressText']??'')));
+    if(preg_match('/complete|completed|success|succeeded|finished|victory|fulfilled/',$status))return 'completed';
+    if(preg_match('/expired|failed|ended|cancelled|canceled/',$status))return 'ended';
+    $expiry=$o['expiration']??$o['expiresAt']??$o['expiry']??null;
+    if(is_numeric($expiry))$time=(int)$expiry>1000000000000?(int)($expiry/1000):(int)$expiry;
+    else $time=is_string($expiry)?strtotime($expiry):false;
+    if($time!==false&&$time>0&&$time<=time())return 'ended';
+    return null;
 }
 try {
-    $pdo->beginTransaction();
-    // Track only order identity/title/expiry so progress polling does not spam notifications.
     $orders=getPayload($pdo,'assignments');
-    $orderSummary=array_values(array_map(static fn($o)=>[
-        'id'=>(string)($o['id']??''),'title'=>(string)($o['title']??''),'expiration'=>(string)($o['expiration']??'')
-    ],array_filter($orders,'is_array')));
-    $orderSummary=array_slice($orderSummary,0,10);
-    $prev=stateGet($pdo,'orders');
-    if($prev===null){stateSet($pdo,'orders',$orderSummary);}
-    elseif($prev['hash']!==hash('sha256',(string)json_encode($orderSummary,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE))){
-        stateSet($pdo,'orders',$orderSummary);
-        $first=$orderSummary[0]['title']??'A major order changed.';
-        $pdo->commit();
-        pushIfConfigured($pdo,$appConfig,'Major order updated',$first,'orders');
+    $current=null;
+    foreach($orders as $candidate){if(is_array($candidate)){$current=$candidate;break;}}
+    if(!$current){echo "No current order payload; no notifications sent.\n";exit(0);}
+    $identity=(string)($current['id']??$current['assignmentId']??$current['title']??$current['name']??'unknown');
+    $title=trim(strip_tags((string)($current['title']??$current['name']??'Supreme Order')));
+    $brief=trim(strip_tags((string)($current['briefing']??$current['description']??$current['message']??'')));
+    $terminal=isTerminalOrder($current);
+    $snapshot=['identity'=>$identity,'title'=>$title,'terminal'=>$terminal,'expiration'=>(string)($current['expiration']??$current['expiresAt']??$current['expiry']??'')];
+    $prev=stateGet($pdo,'current_supreme_order');
+    if($prev===null){
+        stateSet($pdo,'current_supreme_order',$snapshot);
+        echo "Initial order state stored; no notification sent.\n";
+        exit(0);
+    }
+    $old=is_array($prev['json']??null)?$prev['json']:[];
+    if(($old['identity']??null)!==$identity){
+        stateSet($pdo,'current_supreme_order',$snapshot);
         $pdo->beginTransaction();
+        pushIfConfigured($pdo,$appConfig,'New Supreme Order',$title.($brief!==''?': '.$brief:''),'orders','./#orders');
+        $pdo->commit();
+        echo "New Supreme Order detected.\n";
+        exit(0);
     }
-    // Dispatch notifications use newest upstream ID to deduplicate across cron runs.
-    $dispatches=getPayload($pdo,'dispatches');
-    usort($dispatches, static function($a,$b): int {
-        $date = static function($v): int {
-            $raw=$v['published']??$v['publishedAt']??$v['id']??0;
-            if(is_numeric($raw))return (int)$raw;
-            $time=strtotime((string)$raw);
-            return $time===false?0:$time;
-        };
-        return $date($b)<=>$date($a);
-    });
-    $latest=$dispatches[0]??null;
-    if(is_array($latest)&&isset($latest['id'])){
-        $key=(string)$latest['id'];$prev=stateGet($pdo,'latest_dispatch');
-        if($prev===null) stateSet($pdo,'latest_dispatch',['id'=>$key]);
-        elseif(($prev['json']['id']??null)!==$key){
-            stateSet($pdo,'latest_dispatch',['id'=>$key]);
-            $title=(string)($latest['title']??'New galactic dispatch');
-            $body=trim(strip_tags((string)($latest['message']??'')));
-            $pdo->commit();pushIfConfigured($pdo,$appConfig,$title,$body,'dispatches');$pdo->beginTransaction();
-        }
+    $wasTerminal=$old['terminal']??null;
+    if($wasTerminal===null&&$terminal!==null){
+        stateSet($pdo,'current_supreme_order',$snapshot);
+        $pdo->beginTransaction();
+        $endTitle=$terminal==='completed'?'Supreme Order completed':'Supreme Order ended';
+        pushIfConfigured($pdo,$appConfig,$endTitle,$title,'orders','./#details');
+        $pdo->commit();
+        echo "Supreme Order terminal state detected.\n";
+        exit(0);
     }
-    // Current normalized planet records are compared with the previous attack set.
-    $rows=$pdo->query('SELECT upstream_index,name,raw_json FROM planets')->fetchAll();
-    $now=[];
-    foreach($rows as $row){
-        $p=json_decode((string)$row['raw_json'],true);if(!is_array($p))continue;
-        $a=$p['attacking']??false;
-        $is=is_array($a)?count($a)>0:(is_bool($a)?$a:((int)$a===1));
-        if($is)$now[(string)$row['upstream_index']]=(string)$row['name'];
-    }
-    $prev=stateGet($pdo,'attacked_planets');
-    if($prev===null)stateSet($pdo,'attacked_planets',$now);
-    else {
-        $old=is_array($prev['json'])?$prev['json']:[];
-        $new=array_diff_key($now,$old);
-        stateSet($pdo,'attacked_planets',$now);
-        if($new){
-            $name=(string)reset($new);$count=count($new);
-            $pdo->commit();pushIfConfigured($pdo,$appConfig,'Planet under attack',$count>1?"{$name} and ".($count-1)." more planet(s) are now attacked.":"{$name} is now under attack.",'attacks');$pdo->beginTransaction();
-        }
-    }
-    $pdo->commit();
-    echo "Notification state checked.\n";
+    // Update snapshots without notifying for routine progress changes.
+    stateSet($pdo,'current_supreme_order',$snapshot);
+    echo "No qualifying order event; no notification sent.\n";
 } catch(Throwable $e) {
     if($pdo->inTransaction())$pdo->rollBack();
     fwrite(STDERR,$e->getMessage().PHP_EOL);exit(1);

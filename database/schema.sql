@@ -58,3 +58,21 @@ CREATE TABLE IF NOT EXISTS steam_news (
  author VARCHAR(255) NULL, content_text MEDIUMTEXT NULL, published_at DATETIME NULL, raw_json JSON NOT NULL,
  first_seen_at DATETIME NOT NULL, last_seen_at DATETIME NOT NULL, UNIQUE KEY uq_steam_news_upstream(upstream_id), KEY idx_steam_news_published(published_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Push notifications are deliberately limited to Supreme Order lifecycle events.
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+ endpoint_hash CHAR(64) NOT NULL PRIMARY KEY,
+ subscription_json LONGTEXT NOT NULL,
+ preferences_json JSON NULL,
+ created_at DATETIME NOT NULL,
+ updated_at DATETIME NOT NULL,
+ KEY idx_push_updated(updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS notification_state (
+ state_key VARCHAR(100) NOT NULL PRIMARY KEY,
+ state_hash CHAR(64) NOT NULL,
+ state_json JSON NOT NULL,
+ updated_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
