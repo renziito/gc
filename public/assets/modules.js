@@ -56,10 +56,16 @@
   const t = key => (tr[lang] && tr[lang][key]) || (tr.en[key]) || key;
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const rich = value => {
-    let s=String(value??'').replace(/<\s*br\s*\/?\s*>/gi,'\n').replace(/<\s*\/?\s*[a-z][^>]*>/gi,' ');
+    let s=String(value??'')
+      .replace(/<\s*br\s*\/?\s*>/gi,'\n')
+      .replace(/<\s*\/\s*p\s*>/gi,'\n\n')
+      .replace(/<\s*p\b[^>]*>/gi,'')
+      .replace(/<\s*\/?\s*[a-z][^>]*>/gi,' ');
     const allowed=[];
     s=s.replace(/\[(\/)?(b|i|u|s|strike)\]/gi,(_,close,tag)=>{const m={b:'strong',i:'em',u:'u',s:'s',strike:'s'};allowed.push((close?'</':'<')+m[tag.toLowerCase()]+'>');return `\u0001${allowed.length-1}\u0002`;});
-    s=s.replace(/\[\/?(?:url|color|size|list)(?:=[^\]]*)?\]/gi,'').replace(/\[\*\]/g,'• ');
+    s=s.replace(/\[url=([^\]]+)\]([\s\S]*?)\[\/url\]/gi,(_,url,label)=>label||url)
+      .replace(/\[\/?(?:url|color|size|list)(?:=[^\]]*)?\]/gi,'')
+      .replace(/\[\*\]/g,'• ');
     s=s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/\n/g,'<br>');
     return s.replace(/\u0001(\d+)\u0002/g,(_,n)=>allowed[Number(n)]||'');
   };
@@ -381,8 +387,7 @@
     updatePlanetSelect(); renderLoadout(); renderCommunity(); renderArchives(); checkAlerts();
     loadHistory();
   }
-  $('langToggle').addEventListener('click',()=>{lang=lang==='en'?'es':'en';try{localStorage.setItem('gc-lang',lang);localStorage.setItem('gc_language',lang);document.cookie='gc_language='+lang+'; Max-Age=31536000; Path=/; SameSite=Lax';}catch(e){}applyLanguage();window.dispatchEvent(new CustomEvent('gc:language-changed',{detail:{lang}}));});
-  window.addEventListener('gc:language-changed',event=>{const next=event.detail?.lang;if(!['en','es'].includes(next)||next===lang)return;lang=next;try{localStorage.setItem('gc-lang',lang);localStorage.setItem('gc_language',lang);}catch(e){}applyLanguage();});
+  $('langToggle').addEventListener('click',()=>{lang=lang==='en'?'es':'en';localStorage.setItem('gc-lang',lang);applyLanguage();});
   $('loGenerate').addEventListener('click',renderLoadout);
   ['loFaction','loMission','loStyle','loDifficulty','loSquad','loPlanet'].forEach(id=>$(id).addEventListener('change',renderLoadout));
   $('loCopy').addEventListener('click',copyLoadout);
