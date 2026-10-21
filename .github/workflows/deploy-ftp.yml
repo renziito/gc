@@ -1,0 +1,60 @@
+
+name: Deploy to Shared Hosting (FTP)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ftp-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Upload website files
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Deploy via FTP/FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+
+          # Prefer FTPS when supported by your hosting provider.
+          protocol: ftps
+          port: 21
+
+          # Change this to your actual hosting directory.
+          server-dir: /public_html/gc/
+
+          # Repository root. Must end with /
+          local-dir: ./
+
+          # First deployment should be reviewed carefully.
+          dry-run: true
+
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
+            **/.env
+            **/.env.*
+            **/vendor/**
+            **/tests/**
+            **/test/**
+            **/README*
+            **/LICENSE*
+            **/.DS_Store
+            
