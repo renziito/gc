@@ -187,8 +187,9 @@ body{min-height:100dvh}
 
   const fmt = n => { const v = Number(n); return Number.isFinite(v) ? new Intl.NumberFormat('en-US',{notation:v>=1e6?'compact':'standard',maximumFractionDigits:1}).format(v) : '—'; };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const unbox = x => x && typeof x === 'object' && Object.prototype.hasOwnProperty.call(x,'data') ? x.data : x;
   setLanguage('en');renderLoadoutSuggestion();
+  const unbox = x => x && typeof x === 'object' && Object.prototype.hasOwnProperty.call(x,'data') ? x.data : x;
+
   function initAppViews(){
     const shell=document.querySelector('.shell');
     const nav=document.createElement('nav');nav.className='app-nav';nav.setAttribute('aria-label','Main navigation');
