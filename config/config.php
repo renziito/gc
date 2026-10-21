@@ -17,5 +17,10 @@ return [
         'user_agent' => 'GalacticCommand/0.1 (unofficial Helldivers 2 companion)',
     ],
     'cron_token' => 'REPLACE_WITH_A_LONG_RANDOM_TOKEN',
+    'push' => [
+        'public_key' => 'BDYThp-pzxI12mJip1_1_C-slTjRvQ7TwvnHgnd-DDt9dJKJWhzFMz0yFU20arwtCHQsZcfNpjcSvkAFDFBYAkc',
+        'private_key' => 'ztkRT9niT62nLUpB2yuXuSCol9_OuSg2qfjx6CvKF8k',
+        'subject' => 'sepia.aki@gmail.com',
+    ],
     'storage_path' => dirname(__DIR__) . '/storage',
 ];
