@@ -18,11 +18,3 @@ All endpoints return UTF-8 JSON in an envelope:
 
 ## Initial caveat
 The list endpoints return the latest raw upstream JSON payload inside `data` to make transport and caching work first. Relational tables are also populated for the fields seen in the supplied validator JSON. Before locking Android DTOs, add normalized DTO envelopes and API contract tests. This avoids pretending all upstream semantics have been conclusively documented.
-
-
-## Push notification routes
-- `GET /api/v1/push/key` — returns the public VAPID key for browser subscription.
-- `POST /api/v1/push/subscribe` — stores a validated browser subscription with the `orders` preference enabled.
-- `POST /api/v1/push/unsubscribe` — removes a subscription by its endpoint.
-
-The scheduled notification checker is intentionally limited to new Supreme Orders and recognized completion/expiration of the current order. Dispatches, planet attacks, and ordinary progress changes do not send notifications.

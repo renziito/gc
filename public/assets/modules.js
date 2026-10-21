@@ -51,9 +51,18 @@
       copyUnsupported:'El portapapeles no está disponible en este contexto.'
     }
   };
-  let lang = localStorage.getItem('gc-lang') === 'es' ? 'es' : 'en';
+  let lang = 'en';
+  try { const saved=localStorage.getItem('gc_language')||localStorage.getItem('gc-lang')||((document.cookie.match(/(?:^|; )gc_language=([^;]+)/)||[])[1]||'en'); lang=decodeURIComponent(saved)==='es'?'es':'en'; } catch(e) {}
   const t = key => (tr[lang] && tr[lang][key]) || (tr.en[key]) || key;
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const rich = value => {
+    let s=String(value??'').replace(/<\s*br\s*\/?\s*>/gi,'\n').replace(/<\s*\/?\s*[a-z][^>]*>/gi,' ');
+    const allowed=[];
+    s=s.replace(/\[(\/)?(b|i|u|s|strike)\]/gi,(_,close,tag)=>{const m={b:'strong',i:'em',u:'u',s:'s',strike:'s'};allowed.push((close?'</':'<')+m[tag.toLowerCase()]+'>');return `\u0001${allowed.length-1}\u0002`;});
+    s=s.replace(/\[\/?(?:url|color|size|list)(?:=[^\]]*)?\]/gi,'').replace(/\[\*\]/g,'• ');
+    s=s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/\n/g,'<br>');
+    return s.replace(/\u0001(\d+)\u0002/g,(_,n)=>allowed[Number(n)]||'');
+  };
   const plain = value => String(value ?? '').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]*>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/\s+/g,' ').trim();
   const safeHref = value => { try { const u=new URL(String(value),window.location.origin); return ['https:','http:'].includes(u.protocol)?u.href:''; } catch (_) { return ''; } };
   const fmt = n => new Intl.NumberFormat(lang === 'es' ? 'es-PE' : 'en-US',{maximumFractionDigits:1}).format(Number(n)||0);
@@ -218,10 +227,10 @@
     const armor=[...catalog.armor].sort((a,b)=>equipmentScore(b)-equipmentScore(a))[0];
     state.equipment=[weapon,armor];
     state.loadoutContext={faction,mission,style,difficulty,squad,planet:p?planetName(p):'',hazards:p?plain(JSON.stringify(p.hazards||[])):''};
-    result.innerHTML=selected.map((item,i)=>`<article class="module-card"><div class="meta">${esc(t('fourSlots'))} · ${i+1}/4</div><h4>${item.icon} ${esc(item.name)}</h4><p>${esc(item.desc)}</p><div class="module-actions"><span class="tag">${esc(roleNames[item.role]||item.role)}</span><span class="tag">${esc(item.tags.slice(0,2).join(' · '))}</span></div></article>`).join('');
+    result.innerHTML=selected.map((item,i)=>`<article class="module-card stratagem-card"><div class="stratagem-art" aria-hidden="true"><span>${item.icon||'✦'}</span><small>${String(i+1).padStart(2,'0')}</small></div><div class="stratagem-info"><div class="meta">${esc(t('fourSlots'))} · ${i+1}/4</div><h4>${esc(item.name)}</h4><p>${esc(item.desc)}</p><div class="module-actions"><span class="tag">${esc(roleNames[item.role]||item.role)}</span><span class="tag">${esc(item.tags.slice(0,2).join(' · '))}</span></div></div></article>`).join('');
     const hazardText=p?plain(JSON.stringify(p.hazards||[])):'';
     const planetCard=p?`<article class="module-card catalog-card"><div class="catalog-icon">🪐</div><div class="catalog-copy"><div class="meta">${lang==='es'?'CONTEXTO PLANETARIO':'PLANET CONTEXT'}</div><h4>${esc(planetName(p))}</h4><p>${esc([p.sector||'',plain(JSON.stringify(p.biome||'')),hazardText?((lang==='es'?'Riesgos: ':'Hazards: ')+hazardText):'',p.event?((lang==='es'?'Evento: ':'Event: ')+plain(JSON.stringify(p.event))):''].filter(Boolean).join(' · '))}</p></div></article>`:'';
-    $('loadoutEquipment').innerHTML=`<article class="module-card catalog-card"><div class="catalog-icon">${weapon.icon}</div><div class="catalog-copy"><div class="meta">${lang==='es'?'ARMA PRINCIPAL SUGERIDA':'SUGGESTED PRIMARY'}</div><h4>${esc(weapon.name)}</h4><p>${esc(weapon.desc)}</p></div></article><article class="module-card catalog-card"><div class="catalog-icon">${armor.icon}</div><div class="catalog-copy"><div class="meta">${lang==='es'?'ARMADURA SUGERIDA':'SUGGESTED ARMOR'}</div><h4>${esc(armor.name)}</h4><p>${esc(armor.desc)}</p></div></article>${planetCard}`;
+    $('loadoutEquipment').innerHTML=`<article class="module-card catalog-card"><div class="catalog-icon">${weapon.icon}</div><div class="catalog-copy"><div class="meta">${lang==='es'?'ARMA PRINCIPAL SUGERIDA':'SUGGESTED PRIMARY'}</div><h4>${esc(weapon.name)}</h4><p>${esc(weapon.desc)}</p></div></article><article class="module-card catalog-card"><div class="catalog-icon">${armor.icon}</div><div class="catalog-copy"><div class="meta">${lang==='es'?'ARMADURA SUGERIDA':'SUGGESTED ARMOR'}</div><h4>${esc(armor.name)}</h4><p>${esc(armor.desc)}</p></div></article>${planetCard}<article class="module-card armor-tip"><div class="catalog-icon">🛡️</div><div class="catalog-copy"><div class="meta">${esc(lang==='es'?'CONSEJO DE ARMADURA':'ARMOR TIP')}</div><h4>${esc(lang==='es'?'Prioriza la pasiva, no solo la apariencia':'Choose the passive, not just the look')}</h4><p>${esc(lang==='es'?(style==='stealth'?'Usa armadura ligera con exploración o reducción de detección para rotar entre objetivos.':style==='support'?'Usa armadura media o pesada con resistencia y protección para mantenerte cerca del equipo.':style==='antiarmor'?'Considera armadura con resistencia a explosivos o más supervivencia para operar bajo fuego pesado.':style==='crowd'?'La armadura ligera mejora la movilidad para reposicionarte cuando te rodean hordas.':'La armadura media ofrece un equilibrio entre movilidad y supervivencia.'):(style==='stealth'?'Light scout armor helps rotate between objectives and avoid detection.':style==='support'?'Medium or heavy armor with survivability passives helps you stay with the squad.':style==='antiarmor'?'Consider explosive resistance or extra survivability while operating under heavy fire.':style==='crowd'?'Light armor improves repositioning when swarms surround you.':'Medium armor balances mobility and survivability.'))}</p></div></article>`;
     $('loStatus').textContent=(p ? `${t('generated')} ${planetName(p)} · ${p.sector||'sector unknown'}${hazardText?' · '+(lang==='es'?'Riesgos: ':'Hazards: ')+hazardText:''}` : t('generated'));
   }
   function renderCatalog() {

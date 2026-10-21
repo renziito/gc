@@ -1,20 +1,18 @@
-# DiverSignal smoke-test checklist
+# Galactic Command smoke-test checklist
 
-Run these checks on a staging deployment before replacing production files.
+Run these checks after deploying to a staging database.
 
 1. `php -l public/index.php`
-2. `php -l bin/check-alerts.php`
-3. `php -l app/PushNotifier.php`
-4. `node --check public/sw.js`; extract the inline script from `public/index.php` and run `node --check` on it.
-5. Import `database/schema.sql`; confirm `push_subscriptions` and `notification_state` exist.
-6. Verify `GET /api/v1/health`, `/api/v1/assignments`, `/api/v1/orders`, `/api/v1/dispatches`, `/api/v1/steam`, and `/api/v1/space-stations`.
-7. Confirm the initial Orders view shows the Supreme Order and one concise line per task/objective. There must be no galaxy map in the interface.
-8. Open a mission row and confirm Order Details displays the order description, objectives, progress and deadline when the upstream feed supplies them.
-9. Test the Loadout Advisor with all three factions, mission types, combat styles and difficulty settings.
-10. Change between English, Simplified Chinese, Russian, Spanish, Portuguese and German. Reload the page and confirm the selected language persists.
-11. Confirm malformed upstream HTML-like tags such as `<i=3>` are not displayed.
-12. On HTTPS, enable order notifications from More. Confirm a subscription is stored in `push_subscriptions`.
-13. Run `php bin/check-alerts.php` twice without changing the order payload; the second run should not resend a notification. Verify dispatches and planetary events do not trigger notifications.
-14. Test mobile widths, keyboard focus, internal navigation and browser console errors.
+2. `php -l app/PushNotifier.php`
+3. `node --check public/assets/modules.js`
+4. Import the updated `database/schema.sql` (or execute its two new `CREATE TABLE IF NOT EXISTS` statements).
+5. Run `php bin/sync.php --source=war`, `--source=planets`, `--source=assignments`, `--source=campaigns`, `--source=dispatches`, `--source=steam_news`, and `--source=space_stations`.
+6. Verify `GET /api/v1/health`, `/api/v1/war`, `/api/v1/planets`, `/api/v1/history?limit=10`.
+7. Confirm the dashboard shows the planet map/list, orders, campaigns, dispatches, official news, loadout planner, community snapshot, archive timeline, and searchable codex.
+8. Change EN/ES and confirm labels change without losing the chosen loadout settings.
+9. With HTTPS, enable browser notifications. If VAPID is configured, confirm a subscription row appears in `push_subscriptions`.
+10. Run `php bin/check-alerts.php` twice with no source changes; the second run should not resend the same event.
+11. Confirm a test notification using `php bin/push.php --title="Test" --body="Galactic Command push test"`.
+12. Test mobile width, keyboard focus, and browser console for errors.
 
-Push delivery depends on valid VAPID keys, Composer dependencies, browser permission, HTTPS, and the scheduled CLI check. Native Android app links require a separate native app and platform association configuration.
+The source repository does not include automated end-to-end browser tests or live upstream fixtures. Verify data shapes against the current upstream API before relying on operational recommendations.
