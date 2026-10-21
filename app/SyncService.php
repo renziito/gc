@@ -57,7 +57,7 @@ final class SyncService {
             $this->pdo->prepare('INSERT INTO war_snapshots(captured_at,war_id,summary_json,raw_json) VALUES(UTC_TIMESTAMP(),?,?,?)')
                 ->execute([isset($data['warId'])?(string)$data['warId']:null,DataNormalizer::json($stats),$json]);
         }
-        if ($source==='planets' && is_array($data)) {
+        if (($source==='planets' || $source==='planet_events') && is_array($data)) {
             $sql='INSERT INTO planets(upstream_index,name,sector_name,biome_json,hazards_json,position_json,max_health,health,current_owner,initial_owner,regen_per_second,disabled,event_json,statistics_json,attacking_json,regions_json,raw_json,first_seen_at,last_seen_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE name=VALUES(name),sector_name=VALUES(sector_name),biome_json=VALUES(biome_json),hazards_json=VALUES(hazards_json),position_json=VALUES(position_json),max_health=VALUES(max_health),health=VALUES(health),current_owner=VALUES(current_owner),initial_owner=VALUES(initial_owner),regen_per_second=VALUES(regen_per_second),disabled=VALUES(disabled),event_json=VALUES(event_json),statistics_json=VALUES(statistics_json),attacking_json=VALUES(attacking_json),regions_json=VALUES(regions_json),raw_json=VALUES(raw_json),last_seen_at=UTC_TIMESTAMP()';
             $q=$this->pdo->prepare($sql);
             foreach ($data as $p) {

@@ -58,23 +58,3 @@ CREATE TABLE IF NOT EXISTS steam_news (
  author VARCHAR(255) NULL, content_text MEDIUMTEXT NULL, published_at DATETIME NULL, raw_json JSON NOT NULL,
  first_seen_at DATETIME NOT NULL, last_seen_at DATETIME NOT NULL, UNIQUE KEY uq_steam_news_upstream(upstream_id), KEY idx_steam_news_published(published_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
-CREATE TABLE IF NOT EXISTS push_subscriptions (
- id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
- endpoint_hash CHAR(64) NOT NULL,
- endpoint_url VARCHAR(2048) NOT NULL,
- subscription_json JSON NOT NULL,
- preferences_json JSON NULL,
- created_at DATETIME NOT NULL,
- last_seen_at DATETIME NOT NULL,
- KEY idx_push_seen(last_seen_at),
- UNIQUE KEY uq_push_endpoint_hash(endpoint_hash)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS notification_state (
- state_key VARCHAR(191) PRIMARY KEY,
- state_hash CHAR(64) NOT NULL,
- state_json JSON NULL,
- updated_at DATETIME NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
