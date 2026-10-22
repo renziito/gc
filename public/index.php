@@ -145,7 +145,7 @@ body{min-height:100dvh}
 .mission-line{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) minmax(90px,150px) auto 18px;gap:10px;align-items:center;text-align:left;padding:12px 10px;background:#151819;border:1px solid #41474b;color:var(--text);border-radius:0}
 .mission-line:hover,.mission-line:focus-visible{border-color:var(--acid);outline:none}
 .mission-index{font-size:11px;color:var(--acid);font-weight:900}
-.mission-line-title{font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mission-line-copy{display:grid;gap:5px;min-width:0}.mission-line-title{font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mission-line-summary{font-size:10px;font-weight:400;color:var(--muted);white-space:normal;line-height:1.35}.mission-line{min-height:64px}.mission-line:focus-visible .mission-line-summary{color:var(--text)}
 .mission-line-progress{font-size:11px;color:var(--muted);white-space:nowrap}
 .mission-chevron{color:var(--acid);font-size:20px}
 .loadout-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
@@ -239,6 +239,15 @@ body{min-height:100dvh}
   };
   const langNames={en:'English',zh:'简体中文',ru:'Русский',es:'Español',pt:'Português',de:'Deutsch'};
   let gcLanguage='en';
+  let lastOrderPayload=null;
+  function localizeOrderText(value){const raw=cleanText(value);if(gcLanguage!=='es')return raw;const key=raw.toLowerCase().replace(/[.!]+$/,'').trim();const map={
+    'major order':'orden suprema','no active supreme order':'no hay una orden suprema activa','current operational directive':'directiva operativa actual',
+    'liberate the designated planets to secure the raw materials needed to properly honour our fallen heroes':'libera los planetas designados para conseguir las materias primas necesarias para honrar debidamente a nuestros héroes caídos',
+    'liberate the designated planets to secure the raw materials needed to properly honor our fallen heroes':'libera los planetas designados para conseguir las materias primas necesarias para honrar debidamente a nuestros héroes caídos',
+    'liberate designated planet':'liberar el planeta designado','defend designated planets':'defender los planetas designados','hold designated planet':'mantener el control del planeta designado',
+    'complete designated missions':'completar las misiones designadas','complete designated objective':'completar el objetivo designado','eliminate enemies':'eliminar enemigos','defeat the designated faction':'derrotar a la facción designada',
+    'collect samples / complete assigned task':'recolectar muestras / completar la tarea asignada'
+  };return map[key]||raw;}
   function cleanText(v){return String(v??'').replace(/<\s*\/?\s*[a-z][^>]*>/gi,' ').replace(/\s+/g,' ').trim();}
   const esc = v => cleanText(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   // Safe Steam/Arrowhead BBCode renderer. Escape source text first, then allow only known formatting tags.
@@ -277,6 +286,7 @@ body{min-height:100dvh}
     const optKeys={loadoutFaction:{terminids:'terminids',automatons:'automatons',illuminate:'illuminate'},loadoutRole:{balanced:'balanced',antiarmor:'antiarmor',crowd:'crowd',support:'support',stealth:'stealth'},loadoutMission:{eradicate:'eradicate',defense:'defense',objectives:'objectives',recon:'recon',extermination:'extermination',escort:'escort',blitz:'blitz'},loadoutDifficulty:{low:'lowDifficulty',mid:'midDifficulty',high:'highDifficulty'}};
     Object.entries(optKeys).forEach(([id,map])=>{const el=document.getElementById(id);if(el)Array.from(el.options).forEach(o=>{if(map[o.value]&&i18n[gcLanguage][map[o.value]])o.textContent=i18n[gcLanguage][map[o.value]];});});
     renderLoadoutSuggestion();
+    if(lastOrderPayload)renderOrders(lastOrderPayload);
   }
   document.getElementById('languageSelect')?.addEventListener('change',e=>setLanguage(e.target.value));
   function renderLoadoutSuggestion(){
@@ -443,7 +453,24 @@ body{min-height:100dvh}
     const n=Number(value); if(!Number.isFinite(n))return null;
     return planetCatalog.find(p=>Number(first(p,['index','planetIndex','planet_index','id32','id'],NaN))===n)||null;
   }
+  // Arrowhead valueTypes are field identifiers, not planet IDs. For liberation tasks,
+  // type 3 is target count, type 11 is liberation-required, and type 12 is planet index.
+  function orderPlanetForTask(task){
+    const values=Array.isArray(task?.values)?task.values:[];
+    const types=Array.isArray(task?.valueTypes)?task.valueTypes:[];
+    const index=types.findIndex(v=>Number(v)===12);
+    if(index<0||values[index]===undefined)return null;
+    return resolveOrderPlanet(values[index]);
+  }
+  function orderPlanetName(task){
+    const planet=orderPlanetForTask(task); if(!planet)return '';
+    let name=cleanText(first(planet,['name','planetName','planet_name','englishName'],''));
+    const sector=first(planet,['sector','sectorName','sector_name'],null);
+    if(sector)name+=` (${cleanText(sector)})`;
+    return name;
+  }
   function renderOrders(data) {
+    lastOrderPayload=data;
     const items=arr(data).filter(v=>v&&typeof v==='object');
     const primary=items[0]||null;
     const setting=primary?.setting&&typeof primary.setting==='object'?primary.setting:primary;
@@ -452,54 +479,67 @@ body{min-height:100dvh}
     const progressValues=Array.isArray(primary?.progress)?primary.progress:[];
     const doneCount=progressValues.filter(v=>Number(v)>0).length;
     const hasTaskProgress=taskList.length>0&&progressValues.length>0;
-    const orderProgress=hasTaskProgress
-      ? `${doneCount}/${taskList.length} (${Math.round(doneCount/taskList.length*100)}%)`
-      : (typeof primary?.progress==='number'
-          ? (primary.progress<=1?Math.round(primary.progress*100):Math.round(primary.progress))+'%'
-          : '—');
-    const title=primary?first(setting,['overrideTitle','title','name'],first(primary,['title','name'],'Major Order')):'No active Supreme Order';
-    const desc=primary?first(setting,['overrideBrief','briefing','taskDescription','description'],first(primary,['briefing','description','message'],'Current operational directive.')):'The latest order will appear when synchronized data is available.';
+    const orderProgress=hasTaskProgress?`${doneCount}/${taskList.length} (${Math.round(doneCount/taskList.length*100)}%)`:(typeof primary?.progress==='number'?(primary.progress<=1?Math.round(primary.progress*100):Math.round(primary.progress))+'%':'—');
+    const es=gcLanguage==='es';
+    const title=primary?first(setting,['overrideTitle','title','name'],first(primary,['title','name'],es?'Orden Suprema':'Major Order')):(es?'No hay una Orden Suprema activa':'No active Supreme Order');
+    const desc=primary?first(setting,['overrideBrief','briefing','description','message'],first(primary,['briefing','description','message'],es?'Directiva operativa actual.':'Current operational directive.')):(es?'La orden aparecerá cuando se sincronicen los datos.':'The latest order will appear when synchronized data is available.');
     const status=primary?first(primary,['progressText','status'],hasTaskProgress?(doneCount===taskList.length?'COMPLETED':'ACTIVE'):'ACTIVE'):'DATA UNAVAILABLE';
     const titleEl=$('supremeOrderTitle'),briefEl=$('supremeOrderBrief'),stateEl=$('supremeOrderState');
-    if(titleEl)titleEl.textContent=cleanText(title);
-    if(briefEl)briefEl.textContent=cleanText(desc);
-    if(stateEl)stateEl.textContent=cleanText(status).toUpperCase();
-
+    if(titleEl)titleEl.textContent=localizeOrderText(title).toUpperCase()==='ORDEN SUPREMA'&&es?'ORDEN SUPREMA':localizeOrderText(title);
+    if(briefEl)briefEl.textContent=localizeOrderText(desc);
+    if(stateEl)stateEl.textContent=({ACTIVE:es?'ACTIVA':'ACTIVE',COMPLETED:es?'COMPLETADA':'COMPLETED','DATA UNAVAILABLE':es?'DATOS NO DISPONIBLES':'DATA UNAVAILABLE'})[cleanText(status).toUpperCase()]||localizeOrderText(status).toUpperCase();
     const rows=$('missionRows');
     const missionRows=taskList.length?taskList:[primary].filter(Boolean);
     const taskName=(task,i)=>{
       const type=Number(task?.type);
-      const known={2:'Collect samples / complete assigned task',3:'Eliminate enemies',7:'Complete designated missions',9:'Complete designated objective',11:'Liberate designated planet',12:'Defend planets',13:'Hold designated planet',15:'Defeat the designated faction'};
-      return known[type]||`${gcLanguage==='es'?'Objetivo':'Objective'} ${i+1}`;
+      const known=es?{2:'Recolectar muestras / completar la tarea asignada',3:'Eliminar enemigos',7:'Completar las misiones designadas',9:'Completar el objetivo designado',11:'Liberar el planeta designado',12:'Defender los planetas designados',13:'Mantener el control del planeta designado',15:'Derrotar a la facción designada'}:{2:'Collect samples / complete assigned task',3:'Eliminate enemies',7:'Complete designated missions',9:'Complete designated objective',11:'Liberate designated planet',12:'Defend designated planets',13:'Hold designated planet',15:'Defeat the designated faction'};
+      const raw=first(task,['description','title','name','objective','task'],null);
+      // Include the actual target planet so similar task types are not visually indistinguishable.
+      const targetPlanet=orderPlanetName(task);
+      if(type===11&&targetPlanet)return es?`Liberar ${targetPlanet}`:`Liberate ${targetPlanet}`;
+      if(type===13&&targetPlanet)return es?`Mantener el control de ${targetPlanet}`:`Maintain control of ${targetPlanet}`;
+      // Prefer translated task-type names over generic English strings supplied by the API.
+      if(known[type])return known[type];
+      if(raw!==null&&!/^\d+$/.test(String(raw).trim()))return localizeOrderText(raw);
+      return `${es?'Objetivo':'Objective'} ${i+1}`;
+    };
+    const taskSummary=(task)=>{
+      const name=orderPlanetName(task);
+      const values=Array.isArray(task?.values)?task.values:[];
+      const types=Array.isArray(task?.valueTypes)?task.valueTypes:[];
+      const liberationIndex=types.findIndex(v=>Number(v)===11);
+      const liberation=liberationIndex>=0&&values[liberationIndex]!==undefined
+        ? (Number(values[liberationIndex])>0?(es?'Sí, requiere liberación':'Yes, liberation required'):(es?'No requiere liberación':'No liberation required')):'';
+      const parts=[];
+      if(name)parts.push(`${es?'Planeta objetivo':'Target planet'}: ${name}`);
+      if(liberation)parts.push(liberation);
+      if(parts.length)return parts.join(' · ');
+      return es?'Objetivo de la orden. Selecciona para ver los parámetros disponibles.':'Order objective. Select to view available parameters.';
     };
     const taskState=(i)=>{
-      if(!Array.isArray(primary?.progress)||primary.progress[i]===undefined)return gcLanguage==='es'?'Progreso no disponible':'Progress unavailable';
-      return Number(primary.progress[i])>0?(gcLanguage==='es'?'COMPLETADO':'COMPLETED'):(gcLanguage==='es'?'PENDIENTE':'PENDING');
+      if(!Array.isArray(primary?.progress)||primary.progress[i]===undefined)return es?'Progreso no disponible':'Progress unavailable';
+      return Number(primary.progress[i])>0?(es?'COMPLETADO':'COMPLETED'):(es?'PENDIENTE':'PENDING');
     };
     if(rows){
       rows.innerHTML=missionRows.length?missionRows.map((m,i)=>{
-        const rawMissionTitle=first(m,['description','title','name','objective','task'],null);
-        const missionTitle=rawMissionTitle!==null&&!/^\d+$/.test(String(rawMissionTitle).trim())?cleanText(rawMissionTitle):taskName(m,i);
+        const missionTitle=taskList.length?taskName(m,i):(es?'Orden Suprema':'Major Order');
         const progressText=taskList.length?taskState(i):orderProgress;
         const missionStatus=taskList.length?taskState(i):cleanText(first(m,['status','state'],'ACTIVE')).toUpperCase();
-        return `<button class="mission-line" type="button" data-mission-index="${i}"><span class="mission-index">${String(i+1).padStart(2,'0')}</span><span class="mission-line-title">${esc(missionTitle)}</span><span class="mission-line-progress">${esc(progressText)}</span><span class="tag">${esc(missionStatus)}</span><span class="mission-chevron">›</span></button>`;
-      }).join(''):'<div class="empty">No active mission data has been synchronized yet.</div>';
-      rows.querySelectorAll('[data-mission-index]').forEach(btn=>btn.addEventListener('click',()=>{
-        const n=Number(btn.dataset.missionIndex);
-        renderOrderDetails(primary,missionRows[n]||primary,n);
-        if(window.activateAppView)window.activateAppView('details');
-      }));
+        const summary=taskList.length?taskSummary(m):(es?'Selecciona para ver la información de la orden.':'Select to view order information.');
+        return `<button class="mission-line" type="button" data-mission-index="${i}"><span class="mission-index">${String(i+1).padStart(2,'0')}</span><span class="mission-line-copy"><span class="mission-line-title">${esc(missionTitle)}</span><small class="mission-line-summary">${esc(summary)}</small></span><span class="mission-line-progress">${esc(progressText)}</span><span class="tag">${esc(({ACTIVE:es?'ACTIVA':'ACTIVE',COMPLETED:es?'COMPLETADO':'COMPLETED',PENDING:es?'PENDIENTE':'PENDING'})[String(missionStatus).toUpperCase()]||missionStatus)}</span><span class="mission-chevron">›</span></button>`;
+      }).join(''):`<div class="empty">${es?'No hay datos de misiones sincronizados todavía.':'No active mission data has been synchronized yet.'}</div>`;
+      rows.querySelectorAll('[data-mission-index]').forEach(btn=>btn.addEventListener('click',()=>{const n=Number(btn.dataset.missionIndex);renderOrderDetails(primary,missionRows[n]||primary,n);if(window.activateAppView)window.activateAppView('details');}));
     }
-    const stateTag=$('detailOrderState');if(stateTag)stateTag.textContent=cleanText(status).toUpperCase();
+    const stateTag=$('detailOrderState');if(stateTag)stateTag.textContent=({ACTIVE:es?'ACTIVA':'ACTIVE',COMPLETED:es?'COMPLETADA':'COMPLETED','DATA UNAVAILABLE':es?'DATOS NO DISPONIBLES':'DATA UNAVAILABLE'})[cleanText(status).toUpperCase()]||cleanText(status).toUpperCase();
     renderOrderDetails(primary,null,0);
   }
-  function renderOrderDetails(order,selectedMission=null,index=0){
+    function renderOrderDetails(order,selectedMission=null,index=0){
     const box=$('orderDetailsContent');if(!box)return;
     if(!order){box.innerHTML=`<div class="empty">${esc(i18n[gcLanguage].orderDetailsEmpty)}</div>`;return;}
     const setting=order.setting&&typeof order.setting==='object'?order.setting:order;
-    const title=cleanText(first(setting,['overrideTitle','title','name'],first(order,['title','name'],'Major Order')));
-    const desc=cleanText(first(setting,['overrideBrief','briefing','description','message'],first(order,['briefing','description','message'],'No briefing was supplied by the data source.')));
-    const instructions=cleanText(first(setting,['taskDescription','task_description','instructions'],''));
+    const title=localizeOrderText(first(setting,['overrideTitle','title','name'],first(order,['title','name'],gcLanguage==='es'?'Orden Suprema':'Major Order')));
+    const desc=localizeOrderText(first(setting,['overrideBrief','briefing','description','message'],first(order,['briefing','description','message'],gcLanguage==='es'?'La fuente no proporcionó una descripción.':'No briefing was supplied by the data source.')));
+    const instructions=localizeOrderText(first(setting,['taskDescription','task_description','instructions'],''));
     const taskSource=first(setting,['tasks','objectives','missions'],first(order,['tasks','objectives','missions'],[]));
     const tasks=Array.isArray(taskSource)?taskSource.filter(x=>x&&typeof x==='object'):[];
     const progressValues=Array.isArray(order.progress)?order.progress:[];
@@ -514,7 +554,6 @@ body{min-height:100dvh}
     const t=i18n[gcLanguage],es=gcLanguage==='es';
     const taskName=(m,i)=>{
       const raw=first(m,['description','title','name','objective','task'],null);
-      if(raw!==null&&!/^\d+$/.test(String(raw).trim()))return cleanText(raw);
       const type=Number(m.type);
       const names={
         2:es?'Completar la tarea asignada':'Complete the assigned task',
@@ -526,21 +565,45 @@ body{min-height:100dvh}
         13:es?'Mantener el control del planeta designado':'Hold the designated planet',
         15:es?'Derrotar a la facción designada':'Defeat the designated faction'
       };
-      return names[type]||`${t.objective} ${i+1}`;
+      const targetPlanet=orderPlanetName(m);
+      if(type===11&&targetPlanet)return es?`Liberar ${targetPlanet}`:`Liberate ${targetPlanet}`;
+      if(type===13&&targetPlanet)return es?`Mantener el control de ${targetPlanet}`:`Maintain control of ${targetPlanet}`;
+      if(names[type])return names[type];
+      if(raw!==null&&!/^\d+$/.test(String(raw).trim()))return localizeOrderText(raw);
+      return `${t.objective} ${i+1}`;
     };
     const describeTaskValues=(m)=>{
       const values=Array.isArray(m.values)?m.values:[];
       const types=Array.isArray(m.valueTypes)?m.valueTypes:[];
       if(!values.length)return `<div class="objective-extra">${esc(es?'La API no proporcionó parámetros adicionales para este objetivo.':'The API supplied no additional parameters for this objective.')}</div>`;
       const labels={
-        1:es?'Planeta':'Planet',2:es?'Cantidad objetivo':'Target amount',3:es?'Facción':'Faction',4:es?'Misión':'Mission',5:es?'Tipo de objetivo':'Objective type'
+        1:es?'Facción objetivo':'Target faction',
+        2:es?'Parámetro adicional':'Additional parameter',
+        3:es?'Cantidad objetivo':'Target count',
+        4:es?'Identificador adicional':'Additional identifier',
+        5:es?'Tipo de objetivo adicional':'Additional objective type',
+        6:es?'Parámetro adicional':'Additional parameter',
+        8:es?'Condición adicional':'Additional condition',
+        9:es?'Condición de liberación':'Liberation condition',
+        11:es?'Requiere liberación':'Liberation required',
+        12:es?'Planeta objetivo':'Target planet'
       };
       const parts=values.map((v,j)=>{
         const vt=types[j]!==undefined?Number(types[j]):NaN;
-        const planet=resolveOrderPlanet(v);
-        const valueLabel=Number.isFinite(vt)?(labels[vt]||`${es?'Tipo de valor':'Value type'} ${vt}`):(es?'Parámetro':'Parameter')+` ${j+1}`;
-        let display=planet?cleanText(first(planet,['name','planetName','planet_name'],'')):String(v);
-        if(planet){const sector=first(planet,['sector','sectorName'],null);if(sector)display+=` (${cleanText(sector)})`;}
+        const valueLabel=Number.isFinite(vt)?(labels[vt]||`${es?'Parámetro':'Parameter'} ${j+1}`):(es?'Parámetro':'Parameter')+` ${j+1}`;
+        let display=String(v);
+        if(vt===12){
+          const planet=resolveOrderPlanet(v);
+          if(planet){
+            display=cleanText(first(planet,['name','planetName','planet_name','englishName'],String(v)));
+            const sector=first(planet,['sector','sectorName','sector_name'],null);
+            if(sector)display+=` (${cleanText(sector)})`;
+          } else display=es?`Planeta #${v}`:`Planet #${v}`;
+        } else if(vt===11){
+          display=Number(v)>0?(es?'Sí':'Yes'):(es?'No':'No');
+        } else if(vt===3){
+          display=String(v);
+        }
         return `<div class="objective-param"><span>${esc(valueLabel)}</span><strong>${esc(display)}</strong></div>`;
       }).join('');
       return `<div class="objective-params">${parts}</div>`;
@@ -557,7 +620,7 @@ body{min-height:100dvh}
     const overallTarget=first(order,['progressTarget','target','requiredProgress'],null);
     const orderId=first(order,['id','index','assignmentId'],null);
     const orderMeta=[orderId!==null?`${es?'ID de orden':'Order ID'}: ${orderId}`:'',tasks.length?`${tasks.length} ${es?'objetivos':'objectives'}`:''].filter(Boolean).join(' · ');
-    box.innerHTML=`<div class="order-detail-heading"><h4>${esc(title)}</h4><span class="tag hot">${esc(status.toUpperCase())}</span></div><p>${esc(desc)}</p>${instructions&&instructions!==desc?`<div class="order-instructions"><strong>${esc(es?'Instrucciones operativas':'Operational instructions')}</strong><p>${esc(instructions)}</p></div>`:''}${orderMeta?`<div class="order-meta-line">${esc(orderMeta)}</div>`:''}<div class="detail-metrics"><div><small>${esc(t.progress)}</small><strong>${esc(progressText)}</strong>${overallTarget!==null?`<small>${esc(es?'Meta global':'Overall target')}: ${esc(fmt(overallTarget))}</small>`:''}</div><div><small>${esc(t.deadline)}</small><strong>${esc(expiry?dateText(expiry):'—')}</strong></div></div>${selected}<h4 class="detail-section-title">${esc(es?'Objetivos y condiciones':'Objectives & requirements')}</h4><div class="detail-objectives">${detailRows}</div>`;
+    box.innerHTML=`<div class="order-detail-heading"><h4>${esc(title)}</h4><span class="tag hot">${esc(({ACTIVE:es?'ACTIVA':'ACTIVE',COMPLETED:es?'COMPLETADA':'COMPLETED',PENDING:es?'PENDIENTE':'PENDING'})[status.toUpperCase()]||localizeOrderText(status).toUpperCase())}</span></div><p>${esc(desc)}</p>${instructions&&instructions!==desc?`<div class="order-instructions"><strong>${esc(es?'Instrucciones operativas':'Operational instructions')}</strong><p>${esc(instructions)}</p></div>`:''}${orderMeta?`<div class="order-meta-line">${esc(orderMeta)}</div>`:''}<div class="detail-metrics"><div><small>${esc(t.progress)}</small><strong>${esc(progressText)}</strong>${overallTarget!==null?`<small>${esc(es?'Meta global':'Overall target')}: ${esc(fmt(overallTarget))}</small>`:''}</div><div><small>${esc(t.deadline)}</small><strong>${esc(expiry?dateText(expiry):'—')}</strong></div></div>${selected}<h4 class="detail-section-title">${esc(es?'Objetivos y condiciones':'Objectives & requirements')}</h4><div class="detail-objectives">${detailRows}</div>`;
   }
   function renderDispatches(data) { const items=arr(data); const preview=$('incomingDispatchText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','message','content'],'New dispatch')); $('dispatches').innerHTML=items.length?items.slice().sort((a,b)=>Number(first(b,['published','publishedAt','id'],0))-Number(first(a,['published','publishedAt','id'],0))).slice(0,5).map(d=>`<article class="feed-item"><div class="meta">DISPATCH ${esc(first(d,['id','Id'],'—'))} ${first(d,['published','Published'])?' · '+esc(dateText(first(d,['published','Published']))):''}</div><h4>${esc(first(d,['title'],'Galactic dispatch'))}</h4><p>${renderBBCode(first(d,['message','Message','content'],'No message text available.'))}</p></article>`).join(''):'<div class="empty">No dispatches synchronized yet.</div>'; }
   function renderSteam(data) { const items=arr(data); const preview=$('incomingNewsText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','name','content'],'Official update')); $('steamNews').innerHTML=items.length?items.slice(0,5).map(n=>{const title=first(n,['title'],'Official update');const url=first(n,['url','link']);return `<article class="feed-item"><div class="meta">${esc(first(n,['author'],'HELLDIVERS 2'))}${first(n,['publishedAt','published'])?' · '+esc(dateText(first(n,['publishedAt','published']))):''}</div><h4>${url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>`:esc(title)}</h4><p>${renderBBCode(String(first(n,['content','description','summary'],'')).slice(0,1200))}</p></article>`;}).join(''):'<div class="empty">No official news synchronized yet.</div>'; }
