@@ -174,13 +174,19 @@ body{min-height:100dvh}
 @media(max-width:600px){.topbar{flex-wrap:wrap}.top-actions{gap:5px}.language-picker select{max-width:120px}.app-nav button{font-size:8px;padding:10px 3px}.app-views{height:calc(100vh - 165px);min-height:650px}.mission-line{grid-template-columns:24px minmax(0,1fr) auto 12px;gap:6px;padding:10px 7px}.mission-line-progress{display:none}.mission-line-title{font-size:11px}.loadout-controls,.intel-grid{grid-template-columns:1fr}.detail-objective{align-items:flex-start;flex-direction:column}.detail-objective span{text-align:left}}
 
 /* Visual equipment cards and stratagem artwork */
-.loadout-stratagem-card{display:grid;grid-template-columns:88px minmax(0,1fr);gap:12px;align-items:center;padding:12px;margin:8px 0;background:#101315;border:1px solid #3b4144}
+.loadout-stratagem-card{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center;padding:12px;margin:8px 0;background:#101315;border:1px solid #3b4144}
+.loadout-stratagem-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.loadout-stratagem-grid .loadout-stratagem-card{margin:0;min-height:110px}
+.loadout-art img{display:block;position:absolute;width:100%;height:100%;object-fit:contain;padding:7px;opacity:1;background:#0b0d0e}
+.loadout-art .art-fallback{position:relative;z-index:1;font-size:30px;text-shadow:0 2px 5px #000}
+.loadout-art.has-art .art-fallback{display:none}
+@media(max-width:700px){.loadout-stratagem-grid{grid-template-columns:1fr}}
 .loadout-art{position:relative;display:flex;align-items:center;justify-content:center;min-height:82px;overflow:hidden;background:linear-gradient(145deg,#252a2b,#0a0c0d);border:1px solid #50585a}
 .loadout-art img{position:absolute;width:100%;height:100%;object-fit:contain;opacity:.9}
 .loadout-art span{position:relative;z-index:1;font-size:29px;text-shadow:0 2px 5px #000}
 .loadout-art.no-art{background:linear-gradient(145deg,#282d2e,#101213)}
 .loadout-stratagem-copy{min-width:0}.loadout-stratagem-copy h4{margin:3px 0 5px}.loadout-stratagem-copy p{margin:0 0 8px}.loadout-stratagem-copy .module-actions{display:flex;gap:5px;flex-wrap:wrap}.wiki-source{color:#e3c93b;text-decoration:none}
-@media(max-width:520px){.loadout-stratagem-card{grid-template-columns:64px minmax(0,1fr);gap:8px;padding:8px}.loadout-art{min-height:66px}.loadout-art span{font-size:23px}}
+@media(max-width:520px){.loadout-stratagem-card{grid-template-columns:64px minmax(0,1fr);gap:8px;padding:8px}.loadout-art{min-height:66px}.loadout-art .art-fallback{font-size:23px}}
 </style>
 </head>
 <body><div class="shell">
@@ -284,7 +290,31 @@ body{min-height:100dvh}
     const desc=gcLanguage==='es'?'Prioriza esta configuración como punto de partida; adapta las herramientas a los objetivos y la composición del escuadrón.':x[1];
     const kit=gcLanguage==='es'?x[2].replaceAll('Supply pack','mochila de suministros').replaceAll('Eagle airstrike','ataque aéreo Eagle').replaceAll('Orbital precision strike','ataque orbital de precisión').replaceAll('Gatling sentry','centinela Gatling'):x[2];
     const box=document.getElementById('loadoutResult');if(!box)return;
-    box.innerHTML=`<strong>${esc(faction)} // ${esc(title)}</strong><p><b>${esc(t.missionType)}:</b> ${esc(missionNames[m]||m)}. ${esc(missionAdvice[m]||'')}</p><p>${esc(desc+extra)}</p><p><b>${esc(t.recommendation)}</b> ${esc(kit)}</p><p style="opacity:.75">${esc(t.disclaimer)}</p>`;
+    const items=x[2].split('·').map(v=>v.trim()).filter(Boolean).slice(0,4);
+    const itemIcons=['🎯','💥','🛰️','🛡️'];
+    const cardMarkup=items.map((item,i)=>`<article class="loadout-stratagem-card"><div class="loadout-art"><span class="art-fallback">${itemIcons[i%itemIcons.length]}</span><img alt="${esc(item)} artwork" data-wiki-query="${esc(item)}" loading="lazy" hidden></div><div class="loadout-stratagem-copy"><div class="meta">${gcLanguage==='es'?'ESTRATAGEMA SUGERIDO':'SUGGESTED STRATAGEM'} · ${i+1}/4</div><h4>${esc(item)}</h4><div class="module-actions"><a class="tag wiki-source" href="https://helldivers.wiki.gg/wiki/Stratagems" target="_blank" rel="noopener noreferrer">Wiki ↗</a></div></div></article>`).join('');
+    box.innerHTML=`<strong>${esc(faction)} // ${esc(title)}</strong><p><b>${esc(t.missionType)}:</b> ${esc(missionNames[m]||m)}. ${esc(missionAdvice[m]||'')}</p><p>${esc(desc+extra)}</p><div class="loadout-stratagem-grid">${cardMarkup}</div><p><b>${esc(t.recommendation)}</b> ${esc(kit)}</p><p style="opacity:.75">${esc(t.disclaimer)}</p>`;
+    loadWikiArtwork(box);
+  }
+  const wikiImageCache=new Map();
+  async function loadWikiArtwork(root){
+    const images=Array.from(root.querySelectorAll('img[data-wiki-query]'));
+    await Promise.all(images.map(async img=>{
+      const query=img.dataset.wikiQuery;
+      try{
+        let url=wikiImageCache.get(query);
+        if(url===undefined){
+          const endpoint='https://helldivers.wiki.gg/api.php?action=query&generator=search&gsrnamespace=0&gsrlimit=1&gsrsearch='+encodeURIComponent(query+' Helldivers 2')+'&prop=pageimages&piprop=thumbnail&pithumbsize=256&format=json&origin=*';
+          const response=await fetch(endpoint,{headers:{Accept:'application/json'}});
+          if(!response.ok)throw new Error('Wiki image lookup failed');
+          const payload=await response.json();
+          const pages=Object.values(payload.query?.pages||{});
+          url=pages.find(page=>page.thumbnail?.source)?.thumbnail?.source||null;
+          wikiImageCache.set(query,url);
+        }
+        if(url){img.onload=()=>{img.hidden=false;img.parentElement.classList.add('has-art');};img.onerror=()=>{img.removeAttribute('src');img.hidden=true;};img.src=url;}
+      }catch(error){img.hidden=true;}
+    }));
   }
   ['loadoutFaction','loadoutMission','loadoutRole','loadoutDifficulty'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLoadoutSuggestion));
   const storedLang=(()=>{try{return localStorage.getItem('gc_language')}catch(e){return null}})();
