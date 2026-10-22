@@ -159,8 +159,7 @@ body{min-height:100dvh}
 .detail-metrics strong,.selected-mission strong{display:block;margin-top:5px;font-size:15px}
 .detail-section-title{font-size:12px;text-transform:uppercase;letter-spacing:.1em;margin:18px 0 8px}
 .detail-objectives{display:grid;gap:8px}
-.detail-objective{display:flex;justify-content:space-between;gap:12px;padding:10px;border-bottom:1px solid #ffffff15;font-size:12px}
-.detail-objective span{color:var(--muted);text-align:right}
+.detail-objective{display:grid;gap:10px;padding:12px;border:1px solid #ffffff15;border-radius:8px;font-size:12px}.objective-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.objective-top>div{display:grid;gap:5px}.objective-top small,.order-meta-line{color:var(--muted);font-size:10px}.objective-params{display:grid;gap:6px}.objective-param{display:flex;justify-content:space-between;gap:12px;padding-top:7px;border-top:1px solid #ffffff12}.objective-param span{color:var(--muted)}.objective-param strong{text-align:right;overflow-wrap:anywhere}.objective-extra{color:var(--muted);font-size:11px}.order-instructions{padding:12px;margin:12px 0;background:#ffffff06;border-left:2px solid var(--accent);border-radius:4px}.order-instructions p{margin:6px 0 0}.order-meta-line{margin:8px 0}.selected-mission{display:grid;gap:8px;margin:12px 0;padding:12px;border:1px solid #ffffff20;border-radius:8px}
 .intel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .intel-card{padding:14px;border:1px solid var(--line);background:#ffffff03}
 .intel-card h4{margin:0 0 8px;font-size:13px;text-transform:uppercase}
@@ -439,6 +438,11 @@ body{min-height:100dvh}
   function dateText(v) { if (!v) return ''; const n = typeof v === 'number' ? (v < 1e12 ? v*1000 : v) : Date.parse(v); if (!Number.isFinite(n)) return String(v); return new Date(n).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
   function getStats(w) { return first(w,['statistics','stats','galaxyStats'],{}) || {}; }
   function setText(id,v) { const el=$(id); if(el) el.textContent = v == null || v === '' ? '—' : cleanText(v); }
+  let planetCatalog=[];
+  function resolveOrderPlanet(value){
+    const n=Number(value); if(!Number.isFinite(n))return null;
+    return planetCatalog.find(p=>Number(first(p,['index','planetIndex','planet_index','id32','id'],NaN))===n)||null;
+  }
   function renderOrders(data) {
     const items=arr(data).filter(v=>v&&typeof v==='object');
     const primary=items[0]||null;
@@ -494,7 +498,8 @@ body{min-height:100dvh}
     if(!order){box.innerHTML=`<div class="empty">${esc(i18n[gcLanguage].orderDetailsEmpty)}</div>`;return;}
     const setting=order.setting&&typeof order.setting==='object'?order.setting:order;
     const title=cleanText(first(setting,['overrideTitle','title','name'],first(order,['title','name'],'Major Order')));
-    const desc=cleanText(first(setting,['overrideBrief','briefing','taskDescription','description'],first(order,['briefing','description','message'],'No further description supplied.')));
+    const desc=cleanText(first(setting,['overrideBrief','briefing','description','message'],first(order,['briefing','description','message'],'No briefing was supplied by the data source.')));
+    const instructions=cleanText(first(setting,['taskDescription','task_description','instructions'],''));
     const taskSource=first(setting,['tasks','objectives','missions'],first(order,['tasks','objectives','missions'],[]));
     const tasks=Array.isArray(taskSource)?taskSource.filter(x=>x&&typeof x==='object'):[];
     const progressValues=Array.isArray(order.progress)?order.progress:[];
@@ -503,38 +508,56 @@ body{min-height:100dvh}
     const status=cleanText(first(order,['progressText','status'],hasTaskProgress?(doneCount===tasks.length?'COMPLETED':'ACTIVE'):'ACTIVE'));
     let expiry=first(order,['expiration','expiresAt','expiry'],null);
     if(expiry==null&&Number.isFinite(Number(order.expiresIn)))expiry=Date.now()+Number(order.expiresIn)*1000;
-    const mission=selectedMission||order;
-    const missionTitle=cleanText(first(mission,['description','title','name','objective','task'],''));
     const progressText=hasTaskProgress
       ? `${doneCount}/${tasks.length} (${Math.round(doneCount/tasks.length*100)}%)`
       : (typeof order.progress==='number'?(order.progress<=1?Math.round(order.progress*100):Math.round(order.progress))+'%':'—');
-    const t=i18n[gcLanguage];
+    const t=i18n[gcLanguage],es=gcLanguage==='es';
     const taskName=(m,i)=>{
       const raw=first(m,['description','title','name','objective','task'],null);
       if(raw!==null&&!/^\d+$/.test(String(raw).trim()))return cleanText(raw);
       const type=Number(m.type);
-      const es=gcLanguage==='es';
       const names={
-        2:es?'Completar objetivo asignado / recoger muestras':'Complete assigned objective / collect samples',
+        2:es?'Completar la tarea asignada':'Complete the assigned task',
         3:es?'Eliminar enemigos':'Eliminate enemies',
-        7:es?'Completar misiones designadas':'Complete designated missions',
-        9:es?'Completar objetivo designado':'Complete designated objective',
-        11:es?'Liberar planeta designado':'Liberate designated planet',
-        12:es?'Defender planetas':'Defend planets',
-        13:es?'Mantener el control del planeta':'Hold designated planet',
-        15:es?'Derrotar a la facción designada':'Defeat designated faction'
+        7:es?'Completar las misiones designadas':'Complete designated missions',
+        9:es?'Completar el objetivo designado':'Complete the designated objective',
+        11:es?'Liberar el planeta designado':'Liberate the designated planet',
+        12:es?'Defender los planetas designados':'Defend designated planets',
+        13:es?'Mantener el control del planeta designado':'Hold the designated planet',
+        15:es?'Derrotar a la facción designada':'Defeat the designated faction'
       };
       return names[type]||`${t.objective} ${i+1}`;
     };
+    const describeTaskValues=(m)=>{
+      const values=Array.isArray(m.values)?m.values:[];
+      const types=Array.isArray(m.valueTypes)?m.valueTypes:[];
+      if(!values.length)return `<div class="objective-extra">${esc(es?'La API no proporcionó parámetros adicionales para este objetivo.':'The API supplied no additional parameters for this objective.')}</div>`;
+      const labels={
+        1:es?'Planeta':'Planet',2:es?'Cantidad objetivo':'Target amount',3:es?'Facción':'Faction',4:es?'Misión':'Mission',5:es?'Tipo de objetivo':'Objective type'
+      };
+      const parts=values.map((v,j)=>{
+        const vt=types[j]!==undefined?Number(types[j]):NaN;
+        const planet=resolveOrderPlanet(v);
+        const valueLabel=Number.isFinite(vt)?(labels[vt]||`${es?'Tipo de valor':'Value type'} ${vt}`):(es?'Parámetro':'Parameter')+` ${j+1}`;
+        let display=planet?cleanText(first(planet,['name','planetName','planet_name'],'')):String(v);
+        if(planet){const sector=first(planet,['sector','sectorName'],null);if(sector)display+=` (${cleanText(sector)})`;}
+        return `<div class="objective-param"><span>${esc(valueLabel)}</span><strong>${esc(display)}</strong></div>`;
+      }).join('');
+      return `<div class="objective-params">${parts}</div>`;
+    };
     const detailRows=tasks.length?tasks.map((m,i)=>{
       const done=progressValues[i]!==undefined&&Number(progressValues[i])>0;
-      const state=progressValues[i]===undefined?(gcLanguage==='es'?'Progreso no disponible':'Progress unavailable'):(done?(gcLanguage==='es'?'COMPLETADO':'COMPLETED'):(gcLanguage==='es'?'PENDIENTE':'PENDING'));
-      const values=Array.isArray(m.values)?m.values:[];
-      const target=values.find(v=>Number(v)>0);
-      const targetText=target!==undefined?` · ${gcLanguage==='es'?'Objetivo':'Target'}: ${fmt(target)}`:'';
-      return `<div class="detail-objective"><strong>${esc(taskName(m,i))}</strong><span>${esc(state+targetText)}</span></div>`;
-    }).join(''):`<div class="empty">${esc(t.noMissionData)}</div>`;
-    box.innerHTML=`<div class="order-detail-heading"><h4>${esc(title)}</h4><span class="tag hot">${esc(status.toUpperCase())}</span></div><p>${esc(desc)}</p><div class="detail-metrics"><div><small>${esc(t.progress)}</small><strong>${esc(progressText)}</strong></div><div><small>${esc(t.deadline)}</small><strong>${esc(expiry?dateText(expiry):'—')}</strong></div></div>${(missionTitle&&selectedMission)?`<div class="selected-mission"><small>${esc(t.mission)} ${index+1}</small><strong>${esc(missionTitle)}</strong></div>`:''}<h4 class="detail-section-title">${esc(t.objective)}s</h4><div class="detail-objectives">${detailRows}</div>`;
+      const state=progressValues[i]===undefined?(es?'Progreso no disponible':'Progress unavailable'):(done?(es?'COMPLETADO':'COMPLETED'):(es?'PENDIENTE':'PENDING'));
+      const type=Number(m.type);
+      const typeText=Number.isFinite(type)?`${es?'Código de objetivo':'Objective type'}: ${type}`:'';
+      const valuesHtml=describeTaskValues(m);
+      return `<article class="detail-objective"><div class="objective-top"><div><strong>${esc(taskName(m,i))}</strong>${typeText?`<small>${esc(typeText)}</small>`:''}</div><span class="tag ${done?'':'hot'}">${esc(state)}</span></div>${valuesHtml}</article>`;
+    }).join(''):`<div class="empty">${esc(t.noMissionData)} ${es?'Se muestra la información disponible de la orden; la fuente no entregó una lista de objetivos.':'Available order information is shown, but the source did not provide an objective list.'}</div>`;
+    const selected=selectedMission&&tasks.length?`<div class="selected-mission"><small>${esc(t.mission)} ${index+1}</small><strong>${esc(taskName(selectedMission,index))}</strong>${describeTaskValues(selectedMission)}</div>`:'';
+    const overallTarget=first(order,['progressTarget','target','requiredProgress'],null);
+    const orderId=first(order,['id','index','assignmentId'],null);
+    const orderMeta=[orderId!==null?`${es?'ID de orden':'Order ID'}: ${orderId}`:'',tasks.length?`${tasks.length} ${es?'objetivos':'objectives'}`:''].filter(Boolean).join(' · ');
+    box.innerHTML=`<div class="order-detail-heading"><h4>${esc(title)}</h4><span class="tag hot">${esc(status.toUpperCase())}</span></div><p>${esc(desc)}</p>${instructions&&instructions!==desc?`<div class="order-instructions"><strong>${esc(es?'Instrucciones operativas':'Operational instructions')}</strong><p>${esc(instructions)}</p></div>`:''}${orderMeta?`<div class="order-meta-line">${esc(orderMeta)}</div>`:''}<div class="detail-metrics"><div><small>${esc(t.progress)}</small><strong>${esc(progressText)}</strong>${overallTarget!==null?`<small>${esc(es?'Meta global':'Overall target')}: ${esc(fmt(overallTarget))}</small>`:''}</div><div><small>${esc(t.deadline)}</small><strong>${esc(expiry?dateText(expiry):'—')}</strong></div></div>${selected}<h4 class="detail-section-title">${esc(es?'Objetivos y condiciones':'Objectives & requirements')}</h4><div class="detail-objectives">${detailRows}</div>`;
   }
   function renderDispatches(data) { const items=arr(data); const preview=$('incomingDispatchText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','message','content'],'New dispatch')); $('dispatches').innerHTML=items.length?items.slice().sort((a,b)=>Number(first(b,['published','publishedAt','id'],0))-Number(first(a,['published','publishedAt','id'],0))).slice(0,5).map(d=>`<article class="feed-item"><div class="meta">DISPATCH ${esc(first(d,['id','Id'],'—'))} ${first(d,['published','Published'])?' · '+esc(dateText(first(d,['published','Published']))):''}</div><h4>${esc(first(d,['title'],'Galactic dispatch'))}</h4><p>${renderBBCode(first(d,['message','Message','content'],'No message text available.'))}</p></article>`).join(''):'<div class="empty">No dispatches synchronized yet.</div>'; }
   function renderSteam(data) { const items=arr(data); const preview=$('incomingNewsText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','name','content'],'Official update')); $('steamNews').innerHTML=items.length?items.slice(0,5).map(n=>{const title=first(n,['title'],'Official update');const url=first(n,['url','link']);return `<article class="feed-item"><div class="meta">${esc(first(n,['author'],'HELLDIVERS 2'))}${first(n,['publishedAt','published'])?' · '+esc(dateText(first(n,['publishedAt','published']))):''}</div><h4>${url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>`:esc(title)}</h4><p>${renderBBCode(String(first(n,['content','description','summary'],'')).slice(0,1200))}</p></article>`;}).join(''):'<div class="empty">No official news synchronized yet.</div>'; }
@@ -543,6 +566,7 @@ body{min-height:100dvh}
   async function loadAll() {
     const connection=$('connection');if(connection)connection.textContent='SYNCING ORDER AND INTEL FEEDS';
     const refresh=$('refreshBtn');if(refresh){refresh.disabled=true;refresh.textContent='↻ '+i18n[gcLanguage].refresh;}
+    await loadOne('api/v1/planets',data=>{planetCatalog=arr(data);},()=>{planetCatalog=[];});
     const results=await Promise.allSettled([
       loadOne('api/v1/assignments',renderOrders,()=>loadOne('api/v1/orders',renderOrders,err=>{const rows=$('missionRows');if(rows)rows.innerHTML=`<div class="error">${esc(err.message)}</div>`;})),
       loadOne('api/v1/dispatches',renderDispatches,()=>loadOne('api/v1/news',renderDispatches,err=>{const el=$('dispatches');if(el)el.innerHTML=`<div class="error">${esc(err.message)}</div>`;})),
