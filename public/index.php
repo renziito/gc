@@ -442,31 +442,49 @@ body{min-height:100dvh}
   function renderOrders(data) {
     const items=arr(data).filter(v=>v&&typeof v==='object');
     const primary=items[0]||null;
-    const title=primary?first(primary,['title','name'],'Major Order'):'No active Supreme Order';
-    const desc=primary?first(primary,['briefing','description','message'],'Current operational directive.'):'The latest order will appear when synchronized data is available.';
-    const status=primary?first(primary,['progressText','status'],'ACTIVE'):'DATA UNAVAILABLE';
+    const setting=primary?.setting&&typeof primary.setting==='object'?primary.setting:primary;
+    const taskSource=setting?first(setting,['tasks','objectives','missions'],[]):[];
+    const taskList=Array.isArray(taskSource)?taskSource.filter(x=>x&&typeof x==='object'):[];
+    const progressValues=Array.isArray(primary?.progress)?primary.progress:[];
+    const doneCount=progressValues.filter(v=>Number(v)>0).length;
+    const hasTaskProgress=taskList.length>0&&progressValues.length>0;
+    const orderProgress=hasTaskProgress
+      ? `${doneCount}/${taskList.length} (${Math.round(doneCount/taskList.length*100)}%)`
+      : (typeof primary?.progress==='number'
+          ? (primary.progress<=1?Math.round(primary.progress*100):Math.round(primary.progress))+'%'
+          : '—');
+    const title=primary?first(setting,['overrideTitle','title','name'],first(primary,['title','name'],'Major Order')):'No active Supreme Order';
+    const desc=primary?first(setting,['overrideBrief','briefing','taskDescription','description'],first(primary,['briefing','description','message'],'Current operational directive.')):'The latest order will appear when synchronized data is available.';
+    const status=primary?first(primary,['progressText','status'],hasTaskProgress?(doneCount===taskList.length?'COMPLETED':'ACTIVE'):'ACTIVE'):'DATA UNAVAILABLE';
     const titleEl=$('supremeOrderTitle'),briefEl=$('supremeOrderBrief'),stateEl=$('supremeOrderState');
-    if(titleEl)titleEl.textContent=cleanText(title);if(briefEl)briefEl.textContent=cleanText(desc);if(stateEl)stateEl.textContent=cleanText(status).toUpperCase();
-    const tasks=primary?first(primary,['tasks','objectives','missions'],[]):[];
-    const taskList=Array.isArray(tasks)?tasks.filter(x=>x&&typeof x==='object'):[];
+    if(titleEl)titleEl.textContent=cleanText(title);
+    if(briefEl)briefEl.textContent=cleanText(desc);
+    if(stateEl)stateEl.textContent=cleanText(status).toUpperCase();
+
     const rows=$('missionRows');
     const missionRows=taskList.length?taskList:[primary].filter(Boolean);
+    const taskName=(task,i)=>{
+      const type=Number(task?.type);
+      const known={2:'Collect samples / complete assigned task',3:'Eliminate enemies',7:'Complete designated missions',9:'Complete designated objective',11:'Liberate designated planet',12:'Defend planets',13:'Hold designated planet',15:'Defeat the designated faction'};
+      return known[type]||`${gcLanguage==='es'?'Objetivo':'Objective'} ${i+1}`;
+    };
+    const taskState=(i)=>{
+      if(!Array.isArray(primary?.progress)||primary.progress[i]===undefined)return gcLanguage==='es'?'Progreso no disponible':'Progress unavailable';
+      return Number(primary.progress[i])>0?(gcLanguage==='es'?'COMPLETADO':'COMPLETED'):(gcLanguage==='es'?'PENDIENTE':'PENDING');
+    };
     if(rows){
       rows.innerHTML=missionRows.length?missionRows.map((m,i)=>{
-        const rawMissionTitle=first(m,['description','title','name','objective','task','type'],null);
-        const missionTitle=rawMissionTitle!==null && !/^\d+$/.test(String(rawMissionTitle).trim()) ? cleanText(rawMissionTitle) : (gcLanguage==='es'?'Objetivo':'Objective')+' '+(i+1);
-        const missionCode=rawMissionTitle!==null && /^\d+$/.test(String(rawMissionTitle).trim()) ? String(rawMissionTitle).trim() : ''; 
-        const progress=first(m,['progress','progressPercent','completion'],null);
-        const target=first(m,['target','required','total'],null);
-        const current=first(m,['current','value','progressValue'],null);
-        let progressText='Progress unavailable';
-        if(typeof progress==='number')progressText=progress<=1?Math.round(progress*100)+'%':Math.round(progress)+'%';
-        else if(current!==null&&target!==null)progressText=String(current)+' / '+String(target);
-        else if(typeof progress==='string')progressText=cleanText(progress);
-        const missionStatus=cleanText(first(m,['status','state'],'ACTIVE')).toUpperCase();
-        return `<button class="mission-line" type="button" data-mission-index="${i}"><span class="mission-index">${String(i+1).padStart(2,'0')}</span><span class="mission-line-title">${esc(missionTitle)}${missionCode?` <small class="mission-code">#${esc(missionCode)}</small>`:''}</span><span class="mission-line-progress">${esc(progressText)}</span><span class="tag">${esc(missionStatus)}</span><span class="mission-chevron">›</span></button>`;
+        const rawMissionTitle=first(m,['description','title','name','objective','task'],null);
+        const missionTitle=rawMissionTitle!==null&&!/^\d+$/.test(String(rawMissionTitle).trim())?cleanText(rawMissionTitle):taskName(m,i);
+        const progressText=taskList.length?taskState(i):orderProgress;
+        const missionStatus=taskList.length?taskState(i):cleanText(first(m,['status','state'],'ACTIVE')).toUpperCase();
+        return `<button class="mission-line" type="button" data-mission-index="${i}"><span class="mission-index">${String(i+1).padStart(2,'0')}</span><span class="mission-line-title">${esc(missionTitle)}</span><span class="mission-line-progress">${esc(progressText)}</span><span class="tag">${esc(missionStatus)}</span><span class="mission-chevron">›</span></button>`;
       }).join(''):'<div class="empty">No active mission data has been synchronized yet.</div>';
-      rows.querySelectorAll('[data-mission-index]').forEach(btn=>btn.addEventListener('click',()=>{const n=Number(btn.dataset.missionIndex);renderOrderDetails(primary,missionRows[n]||primary,n);if(window.activateAppView)window.activateAppView('details');}));
+      rows.querySelectorAll('[data-mission-index]').forEach(btn=>btn.addEventListener('click',()=>{
+        const n=Number(btn.dataset.missionIndex);
+        renderOrderDetails(primary,missionRows[n]||primary,n);
+        if(window.activateAppView)window.activateAppView('details');
+      }));
     }
     const stateTag=$('detailOrderState');if(stateTag)stateTag.textContent=cleanText(status).toUpperCase();
     renderOrderDetails(primary,null,0);
@@ -474,23 +492,48 @@ body{min-height:100dvh}
   function renderOrderDetails(order,selectedMission=null,index=0){
     const box=$('orderDetailsContent');if(!box)return;
     if(!order){box.innerHTML=`<div class="empty">${esc(i18n[gcLanguage].orderDetailsEmpty)}</div>`;return;}
-    const title=cleanText(first(order,['title','name'],'Major Order'));
-    const desc=cleanText(first(order,['briefing','description','message'],'No further description supplied.'));
-    const status=cleanText(first(order,['progressText','status'],'ACTIVE'));
-    const expiry=first(order,['expiration','expiresAt','expiry'],null);
-    const taskSource=first(order,['tasks','objectives','missions'],[]);
+    const setting=order.setting&&typeof order.setting==='object'?order.setting:order;
+    const title=cleanText(first(setting,['overrideTitle','title','name'],first(order,['title','name'],'Major Order')));
+    const desc=cleanText(first(setting,['overrideBrief','briefing','taskDescription','description'],first(order,['briefing','description','message'],'No further description supplied.')));
+    const taskSource=first(setting,['tasks','objectives','missions'],first(order,['tasks','objectives','missions'],[]));
     const tasks=Array.isArray(taskSource)?taskSource.filter(x=>x&&typeof x==='object'):[];
+    const progressValues=Array.isArray(order.progress)?order.progress:[];
+    const doneCount=progressValues.filter(v=>Number(v)>0).length;
+    const hasTaskProgress=tasks.length>0&&progressValues.length>0;
+    const status=cleanText(first(order,['progressText','status'],hasTaskProgress?(doneCount===tasks.length?'COMPLETED':'ACTIVE'):'ACTIVE'));
+    let expiry=first(order,['expiration','expiresAt','expiry'],null);
+    if(expiry==null&&Number.isFinite(Number(order.expiresIn)))expiry=Date.now()+Number(order.expiresIn)*1000;
     const mission=selectedMission||order;
     const missionTitle=cleanText(first(mission,['description','title','name','objective','task'],''));
-    const progress=first(mission,['progress','progressPercent','completion'],null);
-    const target=first(mission,['target','required','total'],null);
-    const current=first(mission,['current','value','progressValue'],null);
-    let progressText='—';
-    if(typeof progress==='number')progressText=(progress<=1?Math.round(progress*100):Math.round(progress))+'%';
-    else if(current!==null&&target!==null)progressText=String(current)+' / '+String(target);
-    else if(typeof progress==='string')progressText=cleanText(progress);
+    const progressText=hasTaskProgress
+      ? `${doneCount}/${tasks.length} (${Math.round(doneCount/tasks.length*100)}%)`
+      : (typeof order.progress==='number'?(order.progress<=1?Math.round(order.progress*100):Math.round(order.progress))+'%':'—');
     const t=i18n[gcLanguage];
-    const detailRows=tasks.length?tasks.map((m,i)=>{const raw=first(m,['description','title','name','objective','task','type'],null);const label=raw!==null&&!/^\d+$/.test(String(raw).trim())?cleanText(raw):`${t.objective} ${i+1}`;const code=raw!==null&&/^\d+$/.test(String(raw).trim())?` (#${String(raw).trim()})`:'';return `<div class="detail-objective"><strong>${esc(label+code)}</strong><span>${esc(first(m,['progressText','progress','status'],'—'))}</span></div>`;}).join(''):`<div class="empty">${esc(t.noMissionData)}</div>`;
+    const taskName=(m,i)=>{
+      const raw=first(m,['description','title','name','objective','task'],null);
+      if(raw!==null&&!/^\d+$/.test(String(raw).trim()))return cleanText(raw);
+      const type=Number(m.type);
+      const es=gcLanguage==='es';
+      const names={
+        2:es?'Completar objetivo asignado / recoger muestras':'Complete assigned objective / collect samples',
+        3:es?'Eliminar enemigos':'Eliminate enemies',
+        7:es?'Completar misiones designadas':'Complete designated missions',
+        9:es?'Completar objetivo designado':'Complete designated objective',
+        11:es?'Liberar planeta designado':'Liberate designated planet',
+        12:es?'Defender planetas':'Defend planets',
+        13:es?'Mantener el control del planeta':'Hold designated planet',
+        15:es?'Derrotar a la facción designada':'Defeat designated faction'
+      };
+      return names[type]||`${t.objective} ${i+1}`;
+    };
+    const detailRows=tasks.length?tasks.map((m,i)=>{
+      const done=progressValues[i]!==undefined&&Number(progressValues[i])>0;
+      const state=progressValues[i]===undefined?(gcLanguage==='es'?'Progreso no disponible':'Progress unavailable'):(done?(gcLanguage==='es'?'COMPLETADO':'COMPLETED'):(gcLanguage==='es'?'PENDIENTE':'PENDING'));
+      const values=Array.isArray(m.values)?m.values:[];
+      const target=values.find(v=>Number(v)>0);
+      const targetText=target!==undefined?` · ${gcLanguage==='es'?'Objetivo':'Target'}: ${fmt(target)}`:'';
+      return `<div class="detail-objective"><strong>${esc(taskName(m,i))}</strong><span>${esc(state+targetText)}</span></div>`;
+    }).join(''):`<div class="empty">${esc(t.noMissionData)}</div>`;
     box.innerHTML=`<div class="order-detail-heading"><h4>${esc(title)}</h4><span class="tag hot">${esc(status.toUpperCase())}</span></div><p>${esc(desc)}</p><div class="detail-metrics"><div><small>${esc(t.progress)}</small><strong>${esc(progressText)}</strong></div><div><small>${esc(t.deadline)}</small><strong>${esc(expiry?dateText(expiry):'—')}</strong></div></div>${(missionTitle&&selectedMission)?`<div class="selected-mission"><small>${esc(t.mission)} ${index+1}</small><strong>${esc(missionTitle)}</strong></div>`:''}<h4 class="detail-section-title">${esc(t.objective)}s</h4><div class="detail-objectives">${detailRows}</div>`;
   }
   function renderDispatches(data) { const items=arr(data); const preview=$('incomingDispatchText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','message','content'],'New dispatch')); $('dispatches').innerHTML=items.length?items.slice().sort((a,b)=>Number(first(b,['published','publishedAt','id'],0))-Number(first(a,['published','publishedAt','id'],0))).slice(0,5).map(d=>`<article class="feed-item"><div class="meta">DISPATCH ${esc(first(d,['id','Id'],'—'))} ${first(d,['published','Published'])?' · '+esc(dateText(first(d,['published','Published']))):''}</div><h4>${esc(first(d,['title'],'Galactic dispatch'))}</h4><p>${renderBBCode(first(d,['message','Message','content'],'No message text available.'))}</p></article>`).join(''):'<div class="empty">No dispatches synchronized yet.</div>'; }
