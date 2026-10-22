@@ -57,7 +57,7 @@ if ($path === '/' || $path === '/index.php') {
 <!doctype html>
 <html lang="en">
 <head>
-<!-- DiverSignal build: LOADOUT-STRATAGEMS-ONLY-v5 -->
+<!-- DiverSignal build: LOADOUT-STRATAGEMS-WIKI-FILES-v6 -->
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#10150f"><meta name="description" content="DiverSignal — Helldivers 2 orders, loadout advice and combat intelligence.">
 <title>DiverSignal — Helldivers 2 Companion</title>
@@ -297,89 +297,61 @@ body{min-height:100dvh}
     const box=document.getElementById('loadoutResult');if(!box)return;
     const items=x[2].split('·').map(v=>v.trim()).filter(Boolean).slice(0,4);
     const stratagemInfo={
-      'Eagle Airstrike':{arrows:'↑ → ↓ →',wiki:'Eagle_Airstrike',icon:'✈'},
-      'Orbital Precision Strike':{arrows:'→ → ↑',wiki:'Orbital_Precision_Strike',icon:'☄'},
-      'Orbital Gatling Barrage':{arrows:'→ ↓ ← ↑ ↑',wiki:'Orbital_Gatling_Barrage',icon:'☄'},
-      'Autocannon Sentry':{arrows:'↓ ↑ → ↑ →',wiki:'Autocannon_Sentry',icon:'▤'},
-      'Orbital Railcannon Strike':{arrows:'→ ↑ ↓ ↑',wiki:'Orbital_Railcannon_Strike',icon:'☄'},
-      'EMS Mortar Sentry':{arrows:'↓ ↑ → ↓ →',wiki:'EMS_Mortar_Sentry',icon:'▤'},
-      'Eagle Cluster Bomb':{arrows:'↑ → ↓ ↓ →',wiki:'Eagle_Cluster_Bomb',icon:'✈'},
-      'Supply Pack':{arrows:'↓ ← ↓ ↑ ↑ ↓',wiki:'Supply_Pack',icon:'▣'},
-      'Shield Generator Relay':{arrows:'↓ ↓ ← → ← →',wiki:'Shield_Generator_Relay',icon:'⬡'},
-      'Orbital Railcannon Strike':{arrows:'→ ↑ ↓ ↑',wiki:'Orbital_Railcannon_Strike',icon:'☄'},
-      'Eagle Napalm Airstrike':{arrows:'↑ → ↓ ↑',wiki:'Eagle_Napalm_Airstrike',icon:'✈'},
-      'Guard Dog Rover':{arrows:'↓ ↑ ← ↑ → ↓',wiki:'Guard_Dog_Rover',icon:'◈'},
-      'Gatling Sentry':{arrows:'↓ ↑ → ←',wiki:'Gatling_Sentry',icon:'▤'},
-      'Incendiary Mines':{arrows:'↓ ← ↑ →',wiki:'Incendiary_Mines',icon:'✳'},
-      'Jump Pack':{arrows:'↓ ↑ ↑ ↓ ↑',wiki:'Jump_Pack',icon:'▣'},
-      'Smoke Strike':{arrows:'↑ → ↓ ↓',wiki:'Eagle_Smoke_Strike',icon:'☁'}
+      'Eagle Airstrike':{arrows:'↑ → ↓ →',wiki:'Eagle_Airstrike',imageFile:'Eagle Airstrike Stratagem Icon.svg',icon:'✈'},
+      'Orbital Precision Strike':{arrows:'→ → ↑',wiki:'Orbital_Precision_Strike',imageFile:'Orbital Precision Strike Stratagem Icon.svg',icon:'☄'},
+      'Orbital Gatling Barrage':{arrows:'→ ↓ ← ↑ ↑',wiki:'Orbital_Gatling_Barrage',imageFile:'Orbital Gatling Barrage Stratagem Icon.svg',icon:'☄'},
+      'Autocannon Sentry':{arrows:'↓ ↑ → ↑ →',wiki:'Autocannon_Sentry',imageFile:'Autocannon Sentry Stratagem Icon.svg',icon:'▤'},
+      'Orbital Railcannon Strike':{arrows:'→ ↑ ↓ ↑',wiki:'Orbital_Railcannon_Strike',imageFile:'Orbital Railcannon Strike Stratagem Icon.svg',icon:'☄'},
+      'EMS Mortar Sentry':{arrows:'↓ ↑ → ↓ →',wiki:'EMS_Mortar_Sentry',imageFile:'EMS Mortar Sentry Stratagem Icon.svg',icon:'▤'},
+      'Eagle Cluster Bomb':{arrows:'↑ → ↓ ↓ →',wiki:'Eagle_Cluster_Bomb',imageFile:'Eagle Cluster Bomb Stratagem Icon.svg',icon:'✈'},
+      'Supply Pack':{arrows:'↓ ← ↓ ↑ ↑ ↓',wiki:'Supply_Pack',imageFile:'B-1 Supply Pack Stratagem Icon.svg',icon:'▣'},
+      'Shield Generator Relay':{arrows:'↓ ↓ ← → ← →',wiki:'Shield_Generator_Relay',imageFile:'Shield Generator Relay Stratagem Icon.svg',icon:'⬡'},
+      'Orbital Railcannon Strike':{arrows:'→ ↑ ↓ ↑',wiki:'Orbital_Railcannon_Strike',imageFile:'Orbital Railcannon Strike Stratagem Icon.svg',icon:'☄'},
+      'Eagle Napalm Airstrike':{arrows:'↑ → ↓ ↑',wiki:'Eagle_Napalm_Airstrike',imageFile:'Eagle Napalm Airstrike Stratagem Icon.svg',icon:'✈'},
+      'Guard Dog Rover':{arrows:'↓ ↑ ← ↑ → ↓',wiki:'Guard_Dog_Rover',imageFile:'AX LAS-5 Rover Stratagem Icon.svg',imageFiles:['AX LAS-5 Rover Stratagem Icon.svg','AX-LAS-5 Rover Stratagem Icon.svg','Guard Dog Rover Stratagem Icon.svg'],icon:'◈'},
+      'Gatling Sentry':{arrows:'↓ ↑ → ←',wiki:'Gatling_Sentry',imageFile:'Gatling Sentry Stratagem Icon.svg',icon:'▤'},
+      'Incendiary Mines':{arrows:'↓ ← ↑ →',wiki:'Incendiary_Mines',imageFile:'MD-I4 Incendiary Mines Stratagem Icon.svg',imageFiles:['MD-I4 Incendiary Mines Stratagem Icon.svg','Incendiary Mines Stratagem Icon.svg'],icon:'✳'},
+      'Jump Pack':{arrows:'↓ ↑ ↑ ↓ ↑',wiki:'Jump_Pack',imageFile:'LIFT-850 Jump Pack Stratagem Icon.svg',imageFiles:['LIFT-850 Jump Pack Stratagem Icon.svg','Jump Pack Stratagem Icon.svg'],icon:'▣'},
+      'Smoke Strike':{arrows:'↑ → ↓ ↓',wiki:'Eagle_Smoke_Strike',imageFile:'Eagle Smoke Strike Stratagem Icon.svg',icon:'☁'}
     };
-    const cardMarkup=items.map((item,i)=>{const info=stratagemInfo[item]||{arrows:'Código en juego',wiki:item.replaceAll(' ','_'),icon:'✦'};return `<article class="loadout-stratagem-card"><div class="loadout-art"><span class="art-fallback">${info.icon}</span><img alt="Icono de ${esc(item)}" data-wiki-title="${esc(info.wiki)}" loading="lazy" hidden></div><div class="loadout-stratagem-copy"><h4>${esc(item)}</h4><div class="stratagem-code"><span>${gcLanguage==='es'?'Código de activación':'Call-in code'}</span><strong>${esc(info.arrows)}</strong></div><div class="module-actions"><a class="tag wiki-source" href="https://helldivers.wiki.gg/wiki/${encodeURIComponent(info.wiki)}" target="_blank" rel="noopener noreferrer">Wiki ↗</a></div></div></article>`;}).join('');
+    const cardMarkup=items.map((item,i)=>{const info=stratagemInfo[item]||{arrows:'Código en juego',wiki:item.replaceAll(' ','_'),imageFile:`${item} Stratagem Icon.svg`,icon:'✦'};const imageFiles=[...(info.imageFiles||[]),info.imageFile||`${item} Stratagem Icon.svg`,`${item} Icon.svg`];return `<article class="loadout-stratagem-card"><div class="loadout-art"><span class="art-fallback">${info.icon}</span><img alt="Icono de ${esc(item)}" data-image-files="${esc(JSON.stringify([...new Set(imageFiles)]))}" loading="lazy" hidden></div><div class="loadout-stratagem-copy"><h4>${esc(item)}</h4><div class="stratagem-code"><span>${gcLanguage==='es'?'Código de activación':'Call-in code'}</span><strong>${esc(info.arrows)}</strong></div><div class="module-actions"><a class="tag wiki-source" href="https://helldivers.wiki.gg/wiki/${encodeURIComponent(info.wiki)}" target="_blank" rel="noopener noreferrer">Wiki ↗</a></div></div></article>`;}).join('');
     box.innerHTML=`<strong>${esc(faction)} // ${esc(title)}</strong><p><b>${esc(t.missionType)}:</b> ${esc(missionNames[m]||m)}. ${esc(missionAdvice[m]||'')}</p><p>${esc(desc+extra)}</p><div class="loadout-stratagem-grid">${cardMarkup}</div><p><b>${esc(t.recommendation)}</b> ${esc(kit)}</p><p style="opacity:.75">${esc(t.disclaimer)}</p>`;
     loadWikiArtwork(box);
   }
   const wikiImageCache=new Map();
-  async function loadWikiArtwork(root){
-    const images=Array.from(root.querySelectorAll('img[data-wiki-title]'));
-    await Promise.all(images.map(async img=>{
-      const title=img.dataset.wikiTitle;
-      const normalize=s=>String(s||'').toLowerCase().replaceAll('_',' ').replace(/\.(svg|png|jpg|jpeg|webp)$/i,'').trim();
-      try{
-        let url=wikiImageCache.get(title);
-        if(url===undefined){
-          const api='https://helldivers.wiki.gg/api.php?origin=*&format=json&redirects=1&action=query&';
-          // First try the page's own thumbnail.
-          let response=await fetch(api+'titles='+encodeURIComponent(title)+'&prop=pageimages&piprop=thumbnail&pithumbsize=320',{headers:{Accept:'application/json'}});
-          if(response.ok){
-            const payload=await response.json();
-            const pages=Object.values(payload.query?.pages||{});
-            const page=pages.find(p=>normalize(p.title)===normalize(title))||pages[0];
-            url=page?.thumbnail?.source||null;
-          }
-          // Some stratagem pages have no pageimage; inspect files attached to that exact page.
-          if(!url){
-            response=await fetch(api+'titles='+encodeURIComponent(title)+'&prop=images&imlimit=max',{headers:{Accept:'application/json'}});
-            if(response.ok){
-              const payload=await response.json();
-              const pages=Object.values(payload.query?.pages||{});
-              const page=pages.find(p=>normalize(p.title)===normalize(title))||pages[0];
-              const files=(page?.images||[]).map(x=>x.title).filter(Boolean);
-              const key=normalize(title);
-              const preferred=files.filter(file=>{
-                const n=normalize(file);
-                return n.includes(key) && /(icon|stratagem|stratagems|image|logo)/i.test(n);
-              });
-              const secondary=files.filter(file=>/(stratagem|icon)/i.test(file));
-              const candidate=[...preferred,...secondary,...files].find((file,i,arr)=>arr.indexOf(file)===i && /\.(svg|png|jpe?g|webp)$/i.test(file));
-              if(candidate){
-                const info=await fetch(api+'titles='+encodeURIComponent(candidate)+'&prop=imageinfo&iiprop=url|thumbnail&iiurlwidth=320',{headers:{Accept:'application/json'}});
-                if(info.ok){
-                  const imagePayload=await info.json();
-                  const imagePage=Object.values(imagePayload.query?.pages||{})[0];
-                  const imageInfo=imagePage?.imageinfo?.[0];
-                  url=imageInfo?.thumburl||imageInfo?.url||null;
-                }
-              }
-            }
-          }
-          wikiImageCache.set(title,url||null);
-        }
-        if(url){
-          img.onload=()=>{img.hidden=false;img.parentElement.classList.add('has-art');};
-          img.onerror=()=>{img.hidden=true;img.parentElement.classList.remove('has-art');img.removeAttribute('src');};
-          img.hidden=true;
-          img.src=url;
-          if(img.complete && img.naturalWidth>0){img.hidden=false;img.parentElement.classList.add('has-art');}
-        }else{
+  function loadWikiArtwork(root){
+    const images=Array.from(root.querySelectorAll('img[data-image-files]'));
+    images.forEach(img=>{
+      let candidates=[];
+      try{candidates=JSON.parse(img.dataset.imageFiles||'[]')}catch(e){}
+      const key=candidates.join('|');
+      const cached=wikiImageCache.get(key);
+      if(cached){img.src=cached;return;}
+      let index=0;
+      const tryNext=()=>{
+        if(index>=candidates.length){
           img.hidden=true;
           img.parentElement.classList.remove('has-art');
+          img.removeAttribute('src');
+          return;
         }
-      }catch(error){
+        const file=candidates[index++];
+        // Special:FilePath redirects to the exact image stored by the wiki. This avoids
+        // cross-origin API calls and never uses a generic site thumbnail.
+        const url='https://helldivers.wiki.gg/wiki/Special:FilePath/'+encodeURIComponent(file);
+        img.onload=()=>{
+          if(img.naturalWidth>0){
+            img.hidden=false;
+            img.parentElement.classList.add('has-art');
+            wikiImageCache.set(key,url);
+          }else tryNext();
+        };
+        img.onerror=tryNext;
         img.hidden=true;
-        img.parentElement.classList.remove('has-art');
-        img.removeAttribute('src');
-      }
-    }));
+        img.src=url;
+      };
+      tryNext();
+    });
   }
   ['loadoutFaction','loadoutMission','loadoutRole','loadoutDifficulty'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLoadoutSuggestion));
   const storedLang=(()=>{try{return localStorage.getItem('gc_language')}catch(e){return null}})();
