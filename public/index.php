@@ -172,8 +172,6 @@ body{min-height:100dvh}
 #view-more .two-col{margin-bottom:12px}
 @media(max-width:850px){.loadout-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.app-views{height:calc(100vh - 150px);min-height:620px}}
 @media(max-width:600px){.topbar{flex-wrap:wrap}.top-actions{gap:5px}.language-picker select{max-width:120px}.app-nav button{font-size:8px;padding:10px 3px}.app-views{height:calc(100vh - 165px);min-height:650px}.mission-line{grid-template-columns:24px minmax(0,1fr) auto 12px;gap:6px;padding:10px 7px}.mission-line-progress{display:none}.mission-line-title{font-size:11px}.loadout-controls,.intel-grid{grid-template-columns:1fr}.detail-objective{align-items:flex-start;flex-direction:column}.detail-objective span{text-align:left}}
-
-.stratagem-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}.stratagem-card{display:flex;align-items:center;gap:10px;min-width:0;padding:9px;border:1px solid #41474b;background:linear-gradient(135deg,#1a1d1f,#0b0d0e)}.stratagem-art{display:grid;place-items:center;flex:none;width:54px;height:54px;border:1px solid #74651b;background:repeating-linear-gradient(135deg,#2a260c 0 5px,#12130d 5px 10px);color:var(--acid);font-size:27px;font-weight:900}.stratagem-card small{display:block;color:var(--gold);font-size:9px;letter-spacing:.1em}.stratagem-card strong{display:block;font-size:12px;color:var(--text);overflow-wrap:anywhere}.armor-tip{margin:10px 0;padding:10px 12px;border-left:3px solid var(--acid);background:#171819}.armor-tip>strong{font-size:10px;letter-spacing:.12em;color:var(--acid)}.armor-tip p{margin:4px 0 0;color:#c6cbcd;font-size:12px}@media(max-width:600px){.stratagem-grid{grid-template-columns:1fr}.stratagem-art{width:46px;height:46px}}
 </style>
 </head>
 <body><div class="shell">
@@ -223,30 +221,25 @@ body{min-height:100dvh}
   const langNames={en:'English',zh:'简体中文',ru:'Русский',es:'Español',pt:'Português',de:'Deutsch'};
   let gcLanguage='en';
   function cleanText(v){return String(v??'').replace(/<\s*\/?\s*[a-z][^>]*>/gi,' ').replace(/\s+/g,' ').trim();}
-  const esc = v => String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));
-  // Render only known BBCode tags from upstream dispatches/news. Never trust upstream HTML.
-  function richText(v){
-    let text=String(v??'');
-    text=text.replace(/&amp;#(\d+);/gi,'&#$1;').replace(/&lt;br\s*\/?&gt;/gi,'\n');
-    text=text.replace(/<\/?i(?:=\d+)?\s*>/gi,'').replace(/<\/?b(?:=\d+)?\s*>/gi,'');
-    text=esc(text);
-    text=text.replace(/\[\/?b\]/gi,m=>m.toLowerCase()==='[b]'?'<strong>':'</strong>')
-      .replace(/\[\/?i\]/gi,m=>m.toLowerCase()==='[i]'?'<em>':'</em>')
-      .replace(/\[\/?u\]/gi,m=>m.toLowerCase()==='[u]'?'<u>':'</u>')
-      .replace(/\[\/?s\]/gi,m=>m.toLowerCase()==='[s]'?'<s>':'</s>')
-      .replace(/\[url=(https?:\/\/[^\]\s]+)\]([\s\S]*?)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>')
-      .replace(/\[url\]((?:https?:\/\/)[^\[]+)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
-      .replace(/\r?\n/g,'<br>');
-    return text;
-  }
-  function displayObjective(m,i){
-    const label=first(m,['description','title','name','objective','task','text','label'],null);
-    if(label!==null && typeof label!=='number' && String(label).trim() && !/^\d+$/.test(String(label).trim())) return cleanText(label);
-    const kind=first(m,['type','objectiveType','taskType'],null);
-    const amount=first(m,['value','target','required','amount'],null);
-    const typeNames={1:'Liberate planet',2:'Defend planet',3:'Eliminate enemies',4:'Collect samples',5:'Complete missions',11:'Complete the required objective'};
-    const base=typeNames[Number(kind)]||((gcLanguage==='es')?'Objetivo':'Objective');
-    return amount!==null ? `${base} — ${amount}` : `${base} ${i+1}`;
+  const esc = v => cleanText(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  // Render a small, safe subset of upstream BBCode. All source text is escaped first.
+  function renderBBCode(value){
+    let s=String(value??'');
+    s=s.replace(/<\s*\/?\s*i\s*=\s*\d+\s*>/gi,'');
+    s=s.replace(/<\s*\/?\s*[a-z][^>]*>/gi,'');
+    s=s.replace(/&lt;\/?i=\d+&gt;/gi,'');
+    s= s.replace(/\[\/?(?:b|i|u|s|strike|spoiler|h[1-6])\]/gi, m=>m);
+    s= s.replace(/\[url=(https?:\/\/[^\]\s]+)\]([\s\S]*?)\[\/url\]/gi,(_,url,label)=>`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`);
+    s=esc(s);
+    s=s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi,'<strong>$1</strong>')
+       .replace(/\[i\]([\s\S]*?)\[\/i\]/gi,'<em>$1</em>')
+       .replace(/\[u\]([\s\S]*?)\[\/u\]/gi,'<u>$1</u>')
+       .replace(/\[(?:s|strike)\]([\s\S]*?)\[\/(?:s|strike)\]/gi,'<s>$1</s>')
+       .replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/gi,'<span class="spoiler">$1</span>')
+       .replace(/\[h([1-6])\]([\s\S]*?)\[\/h\1\]/gi,(_,n,body)=>`<h${n}>${body}</h${n}>`)
+       .replace(/\[url=(https?:\/\/[^\]\s]+)\]([\s\S]*?)\[\/url\]/gi,(_,url,label)=>`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`)
+       .replace(/\r?\n/g,'<br>');
+    return s;
   }
   function setLanguage(lang){
     gcLanguage=i18n[lang]?lang:'en';document.documentElement.lang=gcLanguage;
@@ -275,10 +268,7 @@ body{min-height:100dvh}
     const desc=gcLanguage==='es'?'Prioriza esta configuración como punto de partida; adapta las herramientas a los objetivos y la composición del escuadrón.':x[1];
     const kit=gcLanguage==='es'?x[2].replaceAll('Supply pack','mochila de suministros').replaceAll('Eagle airstrike','ataque aéreo Eagle').replaceAll('Orbital precision strike','ataque orbital de precisión').replaceAll('Gatling sentry','centinela Gatling'):x[2];
     const box=document.getElementById('loadoutResult');if(!box)return;
-    const stratagemNames=x[2].split(' · ').slice(0,4);
-    const iconFor=(name,i)=>({ 'Eagle airstrike':'✈','Orbital precision strike':'◎','Orbital railcannon strike':'◉','Quasar Cannon':'ϟ','Recoilless rifle':'↗','Flamethrower':'♨','Supply pack':'＋','Gatling sentry':'✣','Autocannon sentry':'✣','Sentry':'✣','Scout armor':'◇','Machine gun':'⌁','Eagle napalm strike':'♨','Eagle cluster strike':'✦','Shield relay':'⬡','EMS support':'ϟ'}[name]||['✦','◎','ϟ','✣'][i%4]);
-    const armorTip=({terminids:{balanced:'Medium armor with recoil/engineering utility; favor survivability while clearing swarms.',antiarmor:'Medium or heavy armor with explosive resistance when facing heavy bugs.',crowd:'Medium armor with engineering kit or flame-resistant protection when available.',support:'Medium armor with extra grenades or stim utility to keep the squad supplied.',stealth:'Scout armor to reduce detection and move between objectives.'},automatons:{balanced:'Medium armor with explosive resistance for ranged engagements.',antiarmor:'Heavy armor with explosive resistance when holding ground against heavy units.',crowd:'Medium armor with recoil control and cover-focused play.',support:'Medium armor with extra stims or engineering utility for team support.',stealth:'Scout armor for flanking, disengaging and avoiding patrols.'},illuminate:{balanced:'Medium armor with balanced survivability and mobility.',antiarmor:'Medium/heavy armor with explosive resistance for sustained engagements.',crowd:'Medium armor with mobility and utility for mixed enemy groups.',support:'Medium armor with extra stims to support teammates.',stealth:'Scout armor for mobility and selective engagements.'}})[f]?.[r]||'Choose armor passive to match your mission, survivability needs and unlocked gear.';
-    box.innerHTML=`<strong>${esc(faction)} // ${esc(title)}</strong><p><b>${esc(t.missionType)}:</b> ${esc(missionNames[m]||m)}. ${esc(missionAdvice[m]||'')}</p><p>${esc(desc+extra)}</p><div class="stratagem-grid">${stratagemNames.map((name,i)=>`<article class="stratagem-card"><div class="stratagem-art" aria-hidden="true">${iconFor(name,i)}</div><div><small>STRATAGEM ${String(i+1).padStart(2,'0')}</small><strong>${esc(name)}</strong></div></article>`).join('')}</div><div class="armor-tip"><strong>ARMOR TIP</strong><p>${esc(armorTip)}</p></div><p style="opacity:.75">${esc(t.disclaimer)}</p>`;
+    box.innerHTML=`<strong>${esc(faction)} // ${esc(title)}</strong><p><b>${esc(t.missionType)}:</b> ${esc(missionNames[m]||m)}. ${esc(missionAdvice[m]||'')}</p><p>${esc(desc+extra)}</p><p><b>${esc(t.recommendation)}</b> ${esc(kit)}</p><p style="opacity:.75">${esc(t.disclaimer)}</p>`;
   }
   ['loadoutFaction','loadoutMission','loadoutRole','loadoutDifficulty'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLoadoutSuggestion));
   const storedLang=(()=>{try{return localStorage.getItem('gc_language')}catch(e){return null}})();
@@ -359,7 +349,9 @@ body{min-height:100dvh}
     const missionRows=taskList.length?taskList:[primary].filter(Boolean);
     if(rows){
       rows.innerHTML=missionRows.length?missionRows.map((m,i)=>{
-        const missionTitle=displayObjective(m,i);
+        const rawMissionTitle=first(m,['description','title','name','objective','task','type'],null);
+        const missionTitle=rawMissionTitle!==null && !/^\d+$/.test(String(rawMissionTitle).trim()) ? cleanText(rawMissionTitle) : (gcLanguage==='es'?'Objetivo':'Objective')+' '+(i+1);
+        const missionCode=rawMissionTitle!==null && /^\d+$/.test(String(rawMissionTitle).trim()) ? String(rawMissionTitle).trim() : ''; 
         const progress=first(m,['progress','progressPercent','completion'],null);
         const target=first(m,['target','required','total'],null);
         const current=first(m,['current','value','progressValue'],null);
@@ -368,7 +360,7 @@ body{min-height:100dvh}
         else if(current!==null&&target!==null)progressText=String(current)+' / '+String(target);
         else if(typeof progress==='string')progressText=cleanText(progress);
         const missionStatus=cleanText(first(m,['status','state'],'ACTIVE')).toUpperCase();
-        return `<button class="mission-line" type="button" data-mission-index="${i}"><span class="mission-index">${String(i+1).padStart(2,'0')}</span><span class="mission-line-title">${esc(missionTitle)}</span><span class="mission-line-progress">${esc(progressText)}</span><span class="tag">${esc(missionStatus)}</span><span class="mission-chevron">›</span></button>`;
+        return `<button class="mission-line" type="button" data-mission-index="${i}"><span class="mission-index">${String(i+1).padStart(2,'0')}</span><span class="mission-line-title">${esc(missionTitle)}${missionCode?` <small class="mission-code">#${esc(missionCode)}</small>`:''}</span><span class="mission-line-progress">${esc(progressText)}</span><span class="tag">${esc(missionStatus)}</span><span class="mission-chevron">›</span></button>`;
       }).join(''):'<div class="empty">No active mission data has been synchronized yet.</div>';
       rows.querySelectorAll('[data-mission-index]').forEach(btn=>btn.addEventListener('click',()=>{const n=Number(btn.dataset.missionIndex);renderOrderDetails(primary,missionRows[n]||primary,n);if(window.activateAppView)window.activateAppView('details');}));
     }
@@ -385,7 +377,7 @@ body{min-height:100dvh}
     const taskSource=first(order,['tasks','objectives','missions'],[]);
     const tasks=Array.isArray(taskSource)?taskSource.filter(x=>x&&typeof x==='object'):[];
     const mission=selectedMission||order;
-    const missionTitle=displayObjective(mission,index);
+    const missionTitle=cleanText(first(mission,['description','title','name','objective','task'],''));
     const progress=first(mission,['progress','progressPercent','completion'],null);
     const target=first(mission,['target','required','total'],null);
     const current=first(mission,['current','value','progressValue'],null);
@@ -394,11 +386,11 @@ body{min-height:100dvh}
     else if(current!==null&&target!==null)progressText=String(current)+' / '+String(target);
     else if(typeof progress==='string')progressText=cleanText(progress);
     const t=i18n[gcLanguage];
-    const detailRows=tasks.length?tasks.map((m,i)=>`<div class="detail-objective"><strong>${esc(t.objective)} ${i+1}: ${esc(displayObjective(m,i))}</strong><span>${esc(first(m,['progressText','progress','status'],'—'))}</span></div>`).join(''):`<div class="empty">${esc(t.noMissionData)}</div>`;
+    const detailRows=tasks.length?tasks.map((m,i)=>{const raw=first(m,['description','title','name','objective','task','type'],null);const label=raw!==null&&!/^\d+$/.test(String(raw).trim())?cleanText(raw):`${t.objective} ${i+1}`;const code=raw!==null&&/^\d+$/.test(String(raw).trim())?` (#${String(raw).trim()})`:'';return `<div class="detail-objective"><strong>${esc(label+code)}</strong><span>${esc(first(m,['progressText','progress','status'],'—'))}</span></div>`;}).join(''):`<div class="empty">${esc(t.noMissionData)}</div>`;
     box.innerHTML=`<div class="order-detail-heading"><h4>${esc(title)}</h4><span class="tag hot">${esc(status.toUpperCase())}</span></div><p>${esc(desc)}</p><div class="detail-metrics"><div><small>${esc(t.progress)}</small><strong>${esc(progressText)}</strong></div><div><small>${esc(t.deadline)}</small><strong>${esc(expiry?dateText(expiry):'—')}</strong></div></div>${(missionTitle&&selectedMission)?`<div class="selected-mission"><small>${esc(t.mission)} ${index+1}</small><strong>${esc(missionTitle)}</strong></div>`:''}<h4 class="detail-section-title">${esc(t.objective)}s</h4><div class="detail-objectives">${detailRows}</div>`;
   }
-  function renderDispatches(data) { const items=arr(data); const preview=$('incomingDispatchText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','message','content'],'New dispatch')); $('dispatches').innerHTML=items.length?items.slice().sort((a,b)=>Number(first(b,['published','publishedAt','id'],0))-Number(first(a,['published','publishedAt','id'],0))).slice(0,5).map(d=>`<article class="feed-item"><div class="meta">DISPATCH ${esc(first(d,['id','Id'],'—'))} ${first(d,['published','Published'])?' · '+esc(dateText(first(d,['published','Published']))):''}</div><h4>${esc(first(d,['title'],'Galactic dispatch'))}</h4><p>${richText(first(d,['message','Message','content'],'No message text available.'))}</p></article>`).join(''):'<div class="empty">No dispatches synchronized yet.</div>'; }
-  function renderSteam(data) { const items=arr(data); const preview=$('incomingNewsText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','name','content'],'Official update')); $('steamNews').innerHTML=items.length?items.slice(0,5).map(n=>{const title=first(n,['title'],'Official update');const url=first(n,['url','link']);return `<article class="feed-item"><div class="meta">${esc(first(n,['author'],'HELLDIVERS 2'))}${first(n,['publishedAt','published'])?' · '+esc(dateText(first(n,['publishedAt','published']))):''}</div><h4>${url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>`:esc(title)}</h4><p>${richText(String(first(n,['contents','content','description','summary'],'')).slice(0,700))}</p></article>`;}).join(''):'<div class="empty">No official news synchronized yet.</div>'; }
+  function renderDispatches(data) { const items=arr(data); const preview=$('incomingDispatchText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','message','content'],'New dispatch')); $('dispatches').innerHTML=items.length?items.slice().sort((a,b)=>Number(first(b,['published','publishedAt','id'],0))-Number(first(a,['published','publishedAt','id'],0))).slice(0,5).map(d=>`<article class="feed-item"><div class="meta">DISPATCH ${esc(first(d,['id','Id'],'—'))} ${first(d,['published','Published'])?' · '+esc(dateText(first(d,['published','Published']))):''}</div><h4>${esc(first(d,['title'],'Galactic dispatch'))}</h4><p>${renderBBCode(first(d,['message','Message','content'],'No message text available.'))}</p></article>`).join(''):'<div class="empty">No dispatches synchronized yet.</div>'; }
+  function renderSteam(data) { const items=arr(data); const preview=$('incomingNewsText');if(preview&&items[0])preview.textContent=String(first(items[0],['title','name','content'],'Official update')); $('steamNews').innerHTML=items.length?items.slice(0,5).map(n=>{const title=first(n,['title'],'Official update');const url=first(n,['url','link']);return `<article class="feed-item"><div class="meta">${esc(first(n,['author'],'HELLDIVERS 2'))}${first(n,['publishedAt','published'])?' · '+esc(dateText(first(n,['publishedAt','published']))):''}</div><h4>${url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>`:esc(title)}</h4><p>${renderBBCode(String(first(n,['content','description','summary'],'')).slice(0,1200))}</p></article>`;}).join(''):'<div class="empty">No official news synchronized yet.</div>'; }
   function renderStations(data) { const items=arr(data); const s=items[0]||data; if(!s||typeof s!=='object'||!Object.keys(s).length){$('station').innerHTML='<div class="empty">No station data available.</div>';return;} const p=s.planet||{};const actions=Array.isArray(s.tacticalActions)?s.tacticalActions:[];$('station').innerHTML=`<div class="order"><h4>${esc(nameOf(p.name?p:first(s,['name'],'Mobile Space Station')))}</h4><p>Station ID32: ${esc(first(s,['id32'],'—'))}</p><div class="order-bottom"><span>${actions.length} tactical actions</span><span>${s.electionEnd?'Election ends '+esc(dateText(s.electionEnd)):'Strategic asset'}</span></div>${actions.length?`<div style="margin-top:10px">${actions.slice(0,4).map(a=>`<span class="tag" style="margin:0 5px 5px 0">${esc(nameOf(first(a,['name','title','id'],a)))}</span>`).join('')}</div>`:''}</div>`; }
   async function loadOne(path, success, fail) { try {const result=await get(path);success(result.data,result.meta);return result;}catch(err){if(fail)fail(err);return null;} }
   async function loadAll() {

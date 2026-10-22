@@ -14,7 +14,7 @@ return [
         'connect_timeout_seconds' => 5,
         'timeout_seconds' => 20,
         'max_response_bytes' => 5000000,
-        'user_agent' => 'GalacticCommand/0.1 (unofficial Helldivers 2 companion)',
+        'user_agent' => 'DiverSignal/1.0 (unofficial Helldivers 2 companion)',
     ],
     'cron_token' => 'REPLACE_WITH_A_LONG_RANDOM_TOKEN',
     'push' => [
