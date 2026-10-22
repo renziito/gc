@@ -172,6 +172,15 @@ body{min-height:100dvh}
 #view-more .two-col{margin-bottom:12px}
 @media(max-width:850px){.loadout-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.app-views{height:calc(100vh - 150px);min-height:620px}}
 @media(max-width:600px){.topbar{flex-wrap:wrap}.top-actions{gap:5px}.language-picker select{max-width:120px}.app-nav button{font-size:8px;padding:10px 3px}.app-views{height:calc(100vh - 165px);min-height:650px}.mission-line{grid-template-columns:24px minmax(0,1fr) auto 12px;gap:6px;padding:10px 7px}.mission-line-progress{display:none}.mission-line-title{font-size:11px}.loadout-controls,.intel-grid{grid-template-columns:1fr}.detail-objective{align-items:flex-start;flex-direction:column}.detail-objective span{text-align:left}}
+
+/* Visual equipment cards and stratagem artwork */
+.loadout-stratagem-card{display:grid;grid-template-columns:88px minmax(0,1fr);gap:12px;align-items:center;padding:12px;margin:8px 0;background:#101315;border:1px solid #3b4144}
+.loadout-art{position:relative;display:flex;align-items:center;justify-content:center;min-height:82px;overflow:hidden;background:linear-gradient(145deg,#252a2b,#0a0c0d);border:1px solid #50585a}
+.loadout-art img{position:absolute;width:100%;height:100%;object-fit:contain;opacity:.9}
+.loadout-art span{position:relative;z-index:1;font-size:29px;text-shadow:0 2px 5px #000}
+.loadout-art.no-art{background:linear-gradient(145deg,#282d2e,#101213)}
+.loadout-stratagem-copy{min-width:0}.loadout-stratagem-copy h4{margin:3px 0 5px}.loadout-stratagem-copy p{margin:0 0 8px}.loadout-stratagem-copy .module-actions{display:flex;gap:5px;flex-wrap:wrap}.wiki-source{color:#e3c93b;text-decoration:none}
+@media(max-width:520px){.loadout-stratagem-card{grid-template-columns:64px minmax(0,1fr);gap:8px;padding:8px}.loadout-art{min-height:66px}.loadout-art span{font-size:23px}}
 </style>
 </head>
 <body><div class="shell">
@@ -222,24 +231,31 @@ body{min-height:100dvh}
   let gcLanguage='en';
   function cleanText(v){return String(v??'').replace(/<\s*\/?\s*[a-z][^>]*>/gi,' ').replace(/\s+/g,' ').trim();}
   const esc = v => cleanText(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  // Render a small, safe subset of upstream BBCode. All source text is escaped first.
+  // Safe Steam/Arrowhead BBCode renderer. Escape source text first, then allow only known formatting tags.
   function renderBBCode(value){
     let s=String(value??'');
-    s=s.replace(/<\s*\/?\s*i\s*=\s*\d+\s*>/gi,'');
-    s=s.replace(/<\s*\/?\s*[a-z][^>]*>/gi,'');
-    s=s.replace(/&lt;\/?i=\d+&gt;/gi,'');
-    s= s.replace(/\[\/?(?:b|i|u|s|strike|spoiler|h[1-6])\]/gi, m=>m);
-    s= s.replace(/\[url=(https?:\/\/[^\]\s]+)\]([\s\S]*?)\[\/url\]/gi,(_,url,label)=>`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`);
+    // Normalize HTML-like game markup and already-escaped malformed tags before processing BBCode.
+    s=s.replace(/<\s*\/?\s*i\s*=\s*\d+\s*>/gi,' ')
+       .replace(/&lt;\s*\/?\s*i\s*=\s*\d+\s*&gt;/gi,' ')
+       .replace(/<\s*\/?\s*[a-z][^>]*>/gi,' ');
+    // Preserve paragraph breaks while removing unsupported list wrappers into readable list lines.
+    s=s.replace(/\[\/?(?:list|ul|ol)\]/gi,'\n')
+       .replace(/\[\*\]/gi,'\n• ')
+       .replace(/\[p\]/gi,'\n').replace(/\[\/p\]/gi,'\n')
+       .replace(/\[br\s*\/??\]/gi,'\n');
+    // URLs are converted only after escaping the complete input, and hrefs are restricted to HTTP(S).
     s=esc(s);
-    s=s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi,'<strong>$1</strong>')
+    s=s.replace(/\[url=(https?:\/\/[^\]\s]+)\]([\s\S]*?)\[\/url\]/gi,(_,url,label)=>`<a href="${url.replace(/&amp;/g,'&')}" target="_blank" rel="noopener noreferrer">${label}</a>`)
+       .replace(/\[url\](https?:\/\/[^\[]+)\[\/url\]/gi,(_,url)=>{const u=url.trim();return `<a href="${u.replace(/&amp;/g,'&')}" target="_blank" rel="noopener noreferrer">${u}</a>`;})
+       .replace(/\[b\]([\s\S]*?)\[\/b\]/gi,'<strong>$1</strong>')
        .replace(/\[i\]([\s\S]*?)\[\/i\]/gi,'<em>$1</em>')
        .replace(/\[u\]([\s\S]*?)\[\/u\]/gi,'<u>$1</u>')
        .replace(/\[(?:s|strike)\]([\s\S]*?)\[\/(?:s|strike)\]/gi,'<s>$1</s>')
        .replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/gi,'<span class="spoiler">$1</span>')
        .replace(/\[h([1-6])\]([\s\S]*?)\[\/h\1\]/gi,(_,n,body)=>`<h${n}>${body}</h${n}>`)
-       .replace(/\[url=(https?:\/\/[^\]\s]+)\]([\s\S]*?)\[\/url\]/gi,(_,url,label)=>`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`)
-       .replace(/\r?\n/g,'<br>');
-    return s;
+       .replace(/\[\/?(?:list|ul|ol|\*|p|br)\]/gi,'')
+       .replace(/\[\/?[a-z][^\]]*\]/gi,'');
+    return s.split(/\n+/).map(line=>line.trim()).filter(Boolean).join('<br>');
   }
   function setLanguage(lang){
     gcLanguage=i18n[lang]?lang:'en';document.documentElement.lang=gcLanguage;

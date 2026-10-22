@@ -14,3 +14,7 @@
 - Added `push_subscriptions` and `notification_state` tables to the schema.
 - Removed malformed HTML-like tags from upstream text before displaying it.
 - Updated deployment and smoke-test documentation.
+
+## Rendering and loadout image fix
+- Normalize malformed HTML-like game tags and render common Steam BBCode paragraphs, lists, formatting, and HTTP(S) links safely.
+- Add visual stratagem cards with category artwork from Helldivers Wiki.gg, emoji fallback, and a source link for each recommendation.
