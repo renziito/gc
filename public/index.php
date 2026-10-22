@@ -57,7 +57,7 @@ if ($path === '/' || $path === '/index.php') {
 <!doctype html>
 <html lang="en">
 <head>
-<!-- DiverSignal build: LOADOUT-STRATAGEMS-ONLY-v4 -->
+<!-- DiverSignal build: LOADOUT-STRATAGEMS-ONLY-v5 -->
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#10150f"><meta name="description" content="DiverSignal — Helldivers 2 orders, loadout advice and combat intelligence.">
 <title>DiverSignal — Helldivers 2 Companion</title>
@@ -181,11 +181,13 @@ body{min-height:100dvh}
 .loadout-stratagem-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
 .loadout-stratagem-grid .loadout-stratagem-card{margin:0;min-height:110px}
 .loadout-art img{display:block;position:absolute;width:100%;height:100%;object-fit:contain;padding:7px;opacity:1;background:#0b0d0e}
+.loadout-art img[hidden]{display:none!important}
 .loadout-art .art-fallback{position:relative;z-index:1;font-size:30px;text-shadow:0 2px 5px #000}
 .loadout-art.has-art .art-fallback{display:none}
 @media(max-width:700px){.loadout-stratagem-grid{grid-template-columns:1fr}}
 .loadout-art{position:relative;display:flex;align-items:center;justify-content:center;min-height:82px;overflow:hidden;background:linear-gradient(145deg,#252a2b,#0a0c0d);border:1px solid #50585a}
 .loadout-art img{position:absolute;width:100%;height:100%;object-fit:contain;opacity:.9}
+.loadout-art img[hidden]{display:none!important}
 .loadout-art span{position:relative;z-index:1;font-size:29px;text-shadow:0 2px 5px #000}
 .loadout-art.no-art{background:linear-gradient(145deg,#282d2e,#101213)}
 .loadout-stratagem-copy{min-width:0}.loadout-stratagem-copy h4{margin:3px 0 5px}.stratagem-code{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 9px;color:var(--muted);font-size:11px}.stratagem-code strong{color:var(--acid);font-size:18px;letter-spacing:2px;text-transform:none;white-space:normal}.loadout-stratagem-copy p{margin:0 0 8px}.loadout-stratagem-copy .module-actions{display:flex;gap:5px;flex-wrap:wrap}.wiki-source{color:#e3c93b;text-decoration:none}
@@ -321,21 +323,62 @@ body{min-height:100dvh}
     const images=Array.from(root.querySelectorAll('img[data-wiki-title]'));
     await Promise.all(images.map(async img=>{
       const title=img.dataset.wikiTitle;
+      const normalize=s=>String(s||'').toLowerCase().replaceAll('_',' ').replace(/\.(svg|png|jpg|jpeg|webp)$/i,'').trim();
       try{
         let url=wikiImageCache.get(title);
         if(url===undefined){
-          // Exact page lookup only: never use search results or generic page thumbnails.
-          const endpoint='https://helldivers.wiki.gg/api.php?action=query&titles='+encodeURIComponent(title)+'&prop=pageimages&piprop=thumbnail&pithumbsize=256&redirects=1&format=json&origin=*';
-          const response=await fetch(endpoint,{headers:{Accept:'application/json'}});
-          if(!response.ok)throw new Error('Exact wiki image lookup failed');
-          const payload=await response.json();
-          const pages=Object.values(payload.query?.pages||{});
-          const page=pages.find(p=>p.title?.toLowerCase().replaceAll(' ','_')===title.toLowerCase());
-          url=page?.thumbnail?.source||null;
-          wikiImageCache.set(title,url);
+          const api='https://helldivers.wiki.gg/api.php?origin=*&format=json&redirects=1&action=query&';
+          // First try the page's own thumbnail.
+          let response=await fetch(api+'titles='+encodeURIComponent(title)+'&prop=pageimages&piprop=thumbnail&pithumbsize=320',{headers:{Accept:'application/json'}});
+          if(response.ok){
+            const payload=await response.json();
+            const pages=Object.values(payload.query?.pages||{});
+            const page=pages.find(p=>normalize(p.title)===normalize(title))||pages[0];
+            url=page?.thumbnail?.source||null;
+          }
+          // Some stratagem pages have no pageimage; inspect files attached to that exact page.
+          if(!url){
+            response=await fetch(api+'titles='+encodeURIComponent(title)+'&prop=images&imlimit=max',{headers:{Accept:'application/json'}});
+            if(response.ok){
+              const payload=await response.json();
+              const pages=Object.values(payload.query?.pages||{});
+              const page=pages.find(p=>normalize(p.title)===normalize(title))||pages[0];
+              const files=(page?.images||[]).map(x=>x.title).filter(Boolean);
+              const key=normalize(title);
+              const preferred=files.filter(file=>{
+                const n=normalize(file);
+                return n.includes(key) && /(icon|stratagem|stratagems|image|logo)/i.test(n);
+              });
+              const secondary=files.filter(file=>/(stratagem|icon)/i.test(file));
+              const candidate=[...preferred,...secondary,...files].find((file,i,arr)=>arr.indexOf(file)===i && /\.(svg|png|jpe?g|webp)$/i.test(file));
+              if(candidate){
+                const info=await fetch(api+'titles='+encodeURIComponent(candidate)+'&prop=imageinfo&iiprop=url|thumbnail&iiurlwidth=320',{headers:{Accept:'application/json'}});
+                if(info.ok){
+                  const imagePayload=await info.json();
+                  const imagePage=Object.values(imagePayload.query?.pages||{})[0];
+                  const imageInfo=imagePage?.imageinfo?.[0];
+                  url=imageInfo?.thumburl||imageInfo?.url||null;
+                }
+              }
+            }
+          }
+          wikiImageCache.set(title,url||null);
         }
-        if(url){img.onload=()=>{img.hidden=false;img.parentElement.classList.add('has-art');};img.onerror=()=>{img.removeAttribute('src');img.hidden=true;};img.src=url;}
-      }catch(error){img.hidden=true;}
+        if(url){
+          img.onload=()=>{img.hidden=false;img.parentElement.classList.add('has-art');};
+          img.onerror=()=>{img.hidden=true;img.parentElement.classList.remove('has-art');img.removeAttribute('src');};
+          img.hidden=true;
+          img.src=url;
+          if(img.complete && img.naturalWidth>0){img.hidden=false;img.parentElement.classList.add('has-art');}
+        }else{
+          img.hidden=true;
+          img.parentElement.classList.remove('has-art');
+        }
+      }catch(error){
+        img.hidden=true;
+        img.parentElement.classList.remove('has-art');
+        img.removeAttribute('src');
+      }
     }));
   }
   ['loadoutFaction','loadoutMission','loadoutRole','loadoutDifficulty'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderLoadoutSuggestion));
