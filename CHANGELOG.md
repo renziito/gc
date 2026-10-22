@@ -24,3 +24,9 @@
 - Replaced mixed weapon/armor recommendations in the visual advisor with stratagem-only choices.
 - Cards use the stratagem name as the title and show the call-in arrow sequence as the subtitle.
 - Removed fuzzy wiki search image matching; images are requested only from the exact stratagem wiki page, with a safe icon fallback.
+
+## v4 — deployment verification
+
+- Removed stale page-cache headers for the dashboard response while validating deployment.
+- Added HTML build marker `LOADOUT-STRATAGEMS-ONLY-v4` to verify that the server is serving the updated `public/index.php`.
+- Kept each recommended stratagem name as the card heading and its activation sequence directly below it. Removed the old “Suggested Stratagem · 1/4” heading from the card markup.

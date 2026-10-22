@@ -50,11 +50,14 @@ if ($method !== 'GET') { header('Allow: GET, POST'); respondError(405,'method_no
 // The browser dashboard lives at the root. All API routes continue to return JSON.
 if ($path === '/' || $path === '/index.php') {
     header('Content-Type: text/html; charset=utf-8');
-    header('Cache-Control: no-cache');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
     echo <<<'HTML'
 <!doctype html>
 <html lang="en">
 <head>
+<!-- DiverSignal build: LOADOUT-STRATAGEMS-ONLY-v4 -->
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#10150f"><meta name="description" content="DiverSignal — Helldivers 2 orders, loadout advice and combat intelligence.">
 <title>DiverSignal — Helldivers 2 Companion</title>
