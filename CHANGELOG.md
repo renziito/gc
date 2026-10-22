@@ -18,3 +18,9 @@
 ## Rendering and loadout image fix
 - Normalize malformed HTML-like game tags and render common Steam BBCode paragraphs, lists, formatting, and HTTP(S) links safely.
 - Add visual stratagem cards with category artwork from Helldivers Wiki.gg, emoji fallback, and a source link for each recommendation.
+
+
+## Loadout stratagem-only update
+- Replaced mixed weapon/armor recommendations in the visual advisor with stratagem-only choices.
+- Cards use the stratagem name as the title and show the call-in arrow sequence as the subtitle.
+- Removed fuzzy wiki search image matching; images are requested only from the exact stratagem wiki page, with a safe icon fallback.

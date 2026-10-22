@@ -185,7 +185,7 @@ body{min-height:100dvh}
 .loadout-art img{position:absolute;width:100%;height:100%;object-fit:contain;opacity:.9}
 .loadout-art span{position:relative;z-index:1;font-size:29px;text-shadow:0 2px 5px #000}
 .loadout-art.no-art{background:linear-gradient(145deg,#282d2e,#101213)}
-.loadout-stratagem-copy{min-width:0}.loadout-stratagem-copy h4{margin:3px 0 5px}.loadout-stratagem-copy p{margin:0 0 8px}.loadout-stratagem-copy .module-actions{display:flex;gap:5px;flex-wrap:wrap}.wiki-source{color:#e3c93b;text-decoration:none}
+.loadout-stratagem-copy{min-width:0}.loadout-stratagem-copy h4{margin:3px 0 5px}.stratagem-code{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 9px;color:var(--muted);font-size:11px}.stratagem-code strong{color:var(--acid);font-size:18px;letter-spacing:2px;text-transform:none;white-space:normal}.loadout-stratagem-copy p{margin:0 0 8px}.loadout-stratagem-copy .module-actions{display:flex;gap:5px;flex-wrap:wrap}.wiki-source{color:#e3c93b;text-decoration:none}
 @media(max-width:520px){.loadout-stratagem-card{grid-template-columns:64px minmax(0,1fr);gap:8px;padding:8px}.loadout-art{min-height:66px}.loadout-art .art-fallback{font-size:23px}}
 </style>
 </head>
@@ -278,9 +278,9 @@ body{min-height:100dvh}
   function renderLoadoutSuggestion(){
     const f=document.getElementById('loadoutFaction')?.value||'terminids',r=document.getElementById('loadoutRole')?.value||'balanced',d=document.getElementById('loadoutDifficulty')?.value||'mid',m=document.getElementById('loadoutMission')?.value||'objectives';
     const data={
-      automatons:{balanced:['Automaton field kit','Favor precision, cover and anti-armor capacity.','Autocannon or anti-materiel option · Eagle airstrike · Orbital precision strike · Supply pack or shield'],antiarmor:['Automaton armor breaker','Prioritize dependable penetration and precision against heavy units.','Recoilless rifle / Quasar Cannon · Orbital precision strike · Eagle airstrike · EMS support'],crowd:['Automaton suppression','Bring area damage for clustered infantry without losing all anti-armor coverage.','Explosive primary · Machine gun / Autocannon · Eagle cluster strike · Orbital gatling barrage'],support:['Automaton squad support','Coordinate anti-armor with teammates and provide resupply or defensive cover.','Squad support weapon · Supply pack · Eagle airstrike · Shield relay / EMS'],stealth:['Automaton reconnaissance','Use mobility and precision; avoid prolonged fights and preserve an emergency strike.','Precision primary · Scout armor · Orbital precision strike · Eagle airstrike']},
-      terminids:{balanced:['Terminid field kit','Balance swarm clearing with a reliable answer to armored threats.','Crowd-clear primary · Flamethrower / Quasar Cannon · Eagle airstrike · Orbital precision strike'],antiarmor:['Terminid armor breaker','Reserve a dedicated slot for chargers and other heavy targets.','Quasar Cannon / Recoilless rifle · Orbital railcannon strike · Eagle airstrike · Sentry'],crowd:['Terminid swarm control','Prioritize sustained area damage and safe space around objectives.','Area-clear primary · Machine gun / Flamethrower · Eagle napalm strike · Gatling sentry'],support:['Terminid squad support','Cover teammates, thin swarms and provide resupply or defensive sentries.','Crowd-clear primary · Supply pack · Autocannon sentry · Eagle airstrike'],stealth:['Terminid reconnaissance','Move between objectives, avoid extra patrols and save strikes for emergencies.','Mobile primary · Scout armor · Eagle airstrike · Orbital precision strike']},
-      illuminate:{balanced:['Illuminate field kit','Use flexible damage for mixed targets and keep tools for durable enemies.','Versatile primary · High-damage support weapon · Eagle airstrike · Orbital precision strike'],antiarmor:['Illuminate shield breaker','Coordinate concentrated burst damage against shielded or durable targets.','High-damage primary · Anti-armor support weapon · Orbital precision strike · Eagle airstrike'],crowd:['Illuminate crowd control','Handle groups of light targets while preserving a slot for priority threats.','Area-clear primary · Machine gun / laser option · Eagle cluster strike · Sentry'],support:['Illuminate squad support','Protect teammates, provide resupply or defense, and retain a flexible strike.','Versatile primary · Supply pack / shield option · Sentry · Eagle airstrike'],stealth:['Illuminate reconnaissance','Stay mobile, isolate threats and save strikes for objectives or extraction.','Precision primary · Scout armor · Orbital precision strike · Eagle airstrike']}
+      automatons:{balanced:['Automaton field kit','Favor precision, cover and anti-armor capacity.','Eagle Airstrike · Orbital Precision Strike · Orbital Gatling Barrage · Autocannon Sentry'],antiarmor:['Automaton armor breaker','Prioritize dependable penetration and precision against heavy units.','Orbital Railcannon Strike · Orbital Precision Strike · Eagle Airstrike · EMS Mortar Sentry'],crowd:['Automaton suppression','Bring area damage for clustered infantry without losing all anti-armor coverage.','Eagle Cluster Bomb · Orbital Gatling Barrage · Eagle Airstrike · Autocannon Sentry'],support:['Automaton squad support','Coordinate anti-armor with teammates and provide resupply or defensive cover.','Supply Pack · Eagle Airstrike · Shield Generator Relay · EMS Mortar Sentry'],stealth:['Automaton reconnaissance','Use mobility and precision; avoid prolonged fights and preserve an emergency strike.','Orbital Precision Strike · Eagle Airstrike · Jump Pack · Smoke Strike']},
+      terminids:{balanced:['Terminid field kit','Balance swarm clearing with a reliable answer to armored threats.','Eagle Napalm Airstrike · Orbital Gatling Barrage · Orbital Precision Strike · Guard Dog Rover'],antiarmor:['Terminid armor breaker','Reserve a dedicated slot for chargers and other heavy targets.','Orbital Railcannon Strike · Eagle Airstrike · Orbital Precision Strike · Autocannon Sentry'],crowd:['Terminid swarm control','Prioritize sustained area damage and safe space around objectives.','Eagle Napalm Airstrike · Orbital Gatling Barrage · Gatling Sentry · Incendiary Mines'],support:['Terminid squad support','Cover teammates, thin swarms and provide resupply or defensive sentries.','Supply Pack · Autocannon Sentry · Eagle Airstrike · Gatling Sentry'],stealth:['Terminid reconnaissance','Move between objectives, avoid extra patrols and save strikes for emergencies.','Eagle Airstrike · Orbital Precision Strike · Jump Pack · Smoke Strike']},
+      illuminate:{balanced:['Illuminate field kit','Use flexible damage for mixed targets and keep tools for durable enemies.','Eagle Airstrike · Orbital Precision Strike · Orbital Railcannon Strike · Autocannon Sentry'],antiarmor:['Illuminate shield breaker','Coordinate concentrated burst damage against shielded or durable targets.','Orbital Railcannon Strike · Orbital Precision Strike · Eagle Airstrike · Autocannon Sentry'],crowd:['Illuminate crowd control','Handle groups of light targets while preserving a slot for priority threats.','Eagle Cluster Bomb · Orbital Gatling Barrage · Eagle Airstrike · Autocannon Sentry'],support:['Illuminate squad support','Protect teammates, provide resupply or defense, and retain a flexible strike.','Supply Pack · Shield Generator Relay · Autocannon Sentry · Eagle Airstrike'],stealth:['Illuminate reconnaissance','Stay mobile, isolate threats and save strikes for objectives or extraction.','Orbital Precision Strike · Eagle Airstrike · Jump Pack · Smoke Strike']}
     };
     const x=data[f]?.[r]||data.terminids.balanced, t=i18n[gcLanguage], faction={automatons:'Automatons',terminids:'Terminids',illuminate:'Illuminate'}[f];
     const missionNames={eradicate:t.eradicate,defense:t.defense,objectives:t.objectives,recon:t.recon,extermination:t.extermination,escort:t.escort,blitz:t.blitz};
@@ -291,26 +291,45 @@ body{min-height:100dvh}
     const kit=gcLanguage==='es'?x[2].replaceAll('Supply pack','mochila de suministros').replaceAll('Eagle airstrike','ataque aéreo Eagle').replaceAll('Orbital precision strike','ataque orbital de precisión').replaceAll('Gatling sentry','centinela Gatling'):x[2];
     const box=document.getElementById('loadoutResult');if(!box)return;
     const items=x[2].split('·').map(v=>v.trim()).filter(Boolean).slice(0,4);
-    const itemIcons=['🎯','💥','🛰️','🛡️'];
-    const cardMarkup=items.map((item,i)=>`<article class="loadout-stratagem-card"><div class="loadout-art"><span class="art-fallback">${itemIcons[i%itemIcons.length]}</span><img alt="${esc(item)} artwork" data-wiki-query="${esc(item)}" loading="lazy" hidden></div><div class="loadout-stratagem-copy"><div class="meta">${gcLanguage==='es'?'ESTRATAGEMA SUGERIDO':'SUGGESTED STRATAGEM'} · ${i+1}/4</div><h4>${esc(item)}</h4><div class="module-actions"><a class="tag wiki-source" href="https://helldivers.wiki.gg/wiki/Stratagems" target="_blank" rel="noopener noreferrer">Wiki ↗</a></div></div></article>`).join('');
+    const stratagemInfo={
+      'Eagle Airstrike':{arrows:'↑ → ↓ →',wiki:'Eagle_Airstrike',icon:'✈'},
+      'Orbital Precision Strike':{arrows:'→ → ↑',wiki:'Orbital_Precision_Strike',icon:'☄'},
+      'Orbital Gatling Barrage':{arrows:'→ ↓ ← ↑ ↑',wiki:'Orbital_Gatling_Barrage',icon:'☄'},
+      'Autocannon Sentry':{arrows:'↓ ↑ → ↑ →',wiki:'Autocannon_Sentry',icon:'▤'},
+      'Orbital Railcannon Strike':{arrows:'→ ↑ ↓ ↑',wiki:'Orbital_Railcannon_Strike',icon:'☄'},
+      'EMS Mortar Sentry':{arrows:'↓ ↑ → ↓ →',wiki:'EMS_Mortar_Sentry',icon:'▤'},
+      'Eagle Cluster Bomb':{arrows:'↑ → ↓ ↓ →',wiki:'Eagle_Cluster_Bomb',icon:'✈'},
+      'Supply Pack':{arrows:'↓ ← ↓ ↑ ↑ ↓',wiki:'Supply_Pack',icon:'▣'},
+      'Shield Generator Relay':{arrows:'↓ ↓ ← → ← →',wiki:'Shield_Generator_Relay',icon:'⬡'},
+      'Orbital Railcannon Strike':{arrows:'→ ↑ ↓ ↑',wiki:'Orbital_Railcannon_Strike',icon:'☄'},
+      'Eagle Napalm Airstrike':{arrows:'↑ → ↓ ↑',wiki:'Eagle_Napalm_Airstrike',icon:'✈'},
+      'Guard Dog Rover':{arrows:'↓ ↑ ← ↑ → ↓',wiki:'Guard_Dog_Rover',icon:'◈'},
+      'Gatling Sentry':{arrows:'↓ ↑ → ←',wiki:'Gatling_Sentry',icon:'▤'},
+      'Incendiary Mines':{arrows:'↓ ← ↑ →',wiki:'Incendiary_Mines',icon:'✳'},
+      'Jump Pack':{arrows:'↓ ↑ ↑ ↓ ↑',wiki:'Jump_Pack',icon:'▣'},
+      'Smoke Strike':{arrows:'↑ → ↓ ↓',wiki:'Eagle_Smoke_Strike',icon:'☁'}
+    };
+    const cardMarkup=items.map((item,i)=>{const info=stratagemInfo[item]||{arrows:'Código en juego',wiki:item.replaceAll(' ','_'),icon:'✦'};return `<article class="loadout-stratagem-card"><div class="loadout-art"><span class="art-fallback">${info.icon}</span><img alt="Icono de ${esc(item)}" data-wiki-title="${esc(info.wiki)}" loading="lazy" hidden></div><div class="loadout-stratagem-copy"><h4>${esc(item)}</h4><div class="stratagem-code"><span>${gcLanguage==='es'?'Código de activación':'Call-in code'}</span><strong>${esc(info.arrows)}</strong></div><div class="module-actions"><a class="tag wiki-source" href="https://helldivers.wiki.gg/wiki/${encodeURIComponent(info.wiki)}" target="_blank" rel="noopener noreferrer">Wiki ↗</a></div></div></article>`;}).join('');
     box.innerHTML=`<strong>${esc(faction)} // ${esc(title)}</strong><p><b>${esc(t.missionType)}:</b> ${esc(missionNames[m]||m)}. ${esc(missionAdvice[m]||'')}</p><p>${esc(desc+extra)}</p><div class="loadout-stratagem-grid">${cardMarkup}</div><p><b>${esc(t.recommendation)}</b> ${esc(kit)}</p><p style="opacity:.75">${esc(t.disclaimer)}</p>`;
     loadWikiArtwork(box);
   }
   const wikiImageCache=new Map();
   async function loadWikiArtwork(root){
-    const images=Array.from(root.querySelectorAll('img[data-wiki-query]'));
+    const images=Array.from(root.querySelectorAll('img[data-wiki-title]'));
     await Promise.all(images.map(async img=>{
-      const query=img.dataset.wikiQuery;
+      const title=img.dataset.wikiTitle;
       try{
-        let url=wikiImageCache.get(query);
+        let url=wikiImageCache.get(title);
         if(url===undefined){
-          const endpoint='https://helldivers.wiki.gg/api.php?action=query&generator=search&gsrnamespace=0&gsrlimit=1&gsrsearch='+encodeURIComponent(query+' Helldivers 2')+'&prop=pageimages&piprop=thumbnail&pithumbsize=256&format=json&origin=*';
+          // Exact page lookup only: never use search results or generic page thumbnails.
+          const endpoint='https://helldivers.wiki.gg/api.php?action=query&titles='+encodeURIComponent(title)+'&prop=pageimages&piprop=thumbnail&pithumbsize=256&redirects=1&format=json&origin=*';
           const response=await fetch(endpoint,{headers:{Accept:'application/json'}});
-          if(!response.ok)throw new Error('Wiki image lookup failed');
+          if(!response.ok)throw new Error('Exact wiki image lookup failed');
           const payload=await response.json();
           const pages=Object.values(payload.query?.pages||{});
-          url=pages.find(page=>page.thumbnail?.source)?.thumbnail?.source||null;
-          wikiImageCache.set(query,url);
+          const page=pages.find(p=>p.title?.toLowerCase().replaceAll(' ','_')===title.toLowerCase());
+          url=page?.thumbnail?.source||null;
+          wikiImageCache.set(title,url);
         }
         if(url){img.onload=()=>{img.hidden=false;img.parentElement.classList.add('has-art');};img.onerror=()=>{img.removeAttribute('src');img.hidden=true;};img.src=url;}
       }catch(error){img.hidden=true;}
