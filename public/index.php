@@ -57,7 +57,7 @@ if ($path === '/' || $path === '/index.php') {
 <!doctype html>
 <html lang="en">
 <head>
-<!-- DiverSignal build: LOADOUT-STRATAGEMS-WIKI-FILES-v7 -->
+<!-- DiverSignal build: LOADOUT-STRATAGEMS-WIKI-FILES-v6 -->
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#10150f"><meta name="description" content="DiverSignal — Helldivers 2 orders, loadout advice and combat intelligence.">
 <title>DiverSignal — Helldivers 2 Companion</title>
@@ -314,7 +314,7 @@ body{min-height:100dvh}
       'Jump Pack':{arrows:'↓ ↑ ↑ ↓ ↑',wiki:'Jump_Pack',imageFile:'LIFT-850 Jump Pack Stratagem Icon.svg',imageFiles:['LIFT-850 Jump Pack Stratagem Icon.svg','Jump Pack Stratagem Icon.svg'],icon:'▣'},
       'Smoke Strike':{arrows:'↑ → ↓ ↓',wiki:'Eagle_Smoke_Strike',imageFile:'Eagle Smoke Strike Stratagem Icon.svg',icon:'☁'}
     };
-    const cardMarkup=items.map((item,i)=>{const info=stratagemInfo[item]||{arrows:'Código en juego',wiki:item.replaceAll(' ','_'),imageFile:`${item} Stratagem Icon.svg`,icon:'✦'};const imageFiles=[...(info.imageFiles||[]),info.imageFile||`${item} Stratagem Icon.svg`,`${item} Icon.svg`];return `<article class="loadout-stratagem-card"><div class="loadout-art"><span class="art-fallback">${info.icon}</span><img alt="Icono de ${esc(item)}" data-image-files="${esc(JSON.stringify([...new Set(imageFiles)]))}" loading="eager" hidden></div><div class="loadout-stratagem-copy"><h4>${esc(item)}</h4><div class="stratagem-code"><span>${gcLanguage==='es'?'Código de activación':'Call-in code'}</span><strong>${esc(info.arrows)}</strong></div><div class="module-actions"><a class="tag wiki-source" href="https://helldivers.wiki.gg/wiki/${encodeURIComponent(info.wiki)}" target="_blank" rel="noopener noreferrer">Wiki ↗</a></div></div></article>`;}).join('');
+    const cardMarkup=items.map((item,i)=>{const info=stratagemInfo[item]||{arrows:'Código en juego',wiki:item.replaceAll(' ','_'),imageFile:`${item} Stratagem Icon.svg`,icon:'✦'};const imageFiles=[...(info.imageFiles||[]),info.imageFile||`${item} Stratagem Icon.svg`,`${item} Icon.svg`];return `<article class="loadout-stratagem-card"><div class="loadout-art"><span class="art-fallback">${info.icon}</span><img alt="Icono de ${esc(item)}" data-image-files="${esc(JSON.stringify([...new Set(imageFiles)]))}" loading="lazy" hidden></div><div class="loadout-stratagem-copy"><h4>${esc(item)}</h4><div class="stratagem-code"><span>${gcLanguage==='es'?'Código de activación':'Call-in code'}</span><strong>${esc(info.arrows)}</strong></div><div class="module-actions"><a class="tag wiki-source" href="https://helldivers.wiki.gg/wiki/${encodeURIComponent(info.wiki)}" target="_blank" rel="noopener noreferrer">Wiki ↗</a></div></div></article>`;}).join('');
     box.innerHTML=`<strong>${esc(faction)} // ${esc(title)}</strong><p><b>${esc(t.missionType)}:</b> ${esc(missionNames[m]||m)}. ${esc(missionAdvice[m]||'')}</p><p>${esc(desc+extra)}</p><div class="loadout-stratagem-grid">${cardMarkup}</div><p><b>${esc(t.recommendation)}</b> ${esc(kit)}</p><p style="opacity:.75">${esc(t.disclaimer)}</p>`;
     loadWikiArtwork(box);
   }
@@ -326,7 +326,14 @@ body{min-height:100dvh}
       try{candidates=JSON.parse(img.dataset.imageFiles||'[]')}catch(e){}
       const key=candidates.join('|');
       const cached=wikiImageCache.get(key);
-      if(cached){img.src=cached;return;}
+      if(cached){
+        img.onload=()=>{img.hidden=img.naturalWidth<=0;};
+        img.onerror=()=>{img.hidden=true;img.parentElement.classList.remove('has-art');};
+        img.hidden=false;
+        img.src=cached;
+        return;
+      }
+
       let index=0;
       const tryNext=()=>{
         if(index>=candidates.length){
@@ -335,31 +342,35 @@ body{min-height:100dvh}
           img.removeAttribute('src');
           return;
         }
+
         const file=candidates[index++];
-        // Special:FilePath redirects to the exact image stored by the wiki. This avoids
-        // cross-origin API calls and never uses a generic site thumbnail.
-        const url='https://helldivers.wiki.gg/wiki/Special:FilePath/'+encodeURIComponent(file);
-        // Preload outside the hidden <img>. A hidden image marked loading=lazy may
-        // never start loading, so its onload handler never fires and it stays hidden.
-        const probe = new Image();
-        probe.decoding = 'async';
-        probe.onload = () => {
-          if (probe.naturalWidth > 0) {
-            img.onload = null;
-            img.onerror = null;
-            img.src = probe.currentSrc || probe.src;
-            img.hidden = false;
+        // Use the direct public image path. Special:FilePath is returning HTTP 403
+        // in the embedded request, while the direct /images/<filename> URL works.
+        const basename=String(file).split('/').pop().replace(/\\/g,'/');
+        const directUrl='https://helldivers.wiki.gg/images/'+basename.replace(/ /g,'_');
+
+        // Preload separately so hidden/lazy rendering cannot prevent the request.
+        const probe=new Image();
+        probe.decoding='async';
+        probe.onload=()=>{
+          if(probe.naturalWidth>0){
+            const resolved=probe.currentSrc||probe.src;
+            img.onload=null;
+            img.onerror=()=>{img.hidden=true;img.parentElement.classList.remove('has-art');};
+            img.src=resolved;
+            img.hidden=false;
             img.parentElement.classList.add('has-art');
             img.parentElement.classList.remove('no-art');
-            wikiImageCache.set(key, probe.currentSrc || probe.src);
-          } else {
+            wikiImageCache.set(key,resolved);
+          }else{
             tryNext();
           }
         };
-        probe.onerror = tryNext;
-        img.hidden = true;
-        probe.src = url;
+        probe.onerror=tryNext;
+        probe.src=directUrl;
       };
+      img.hidden=true;
+      img.loading='eager';
       tryNext();
     });
   }
